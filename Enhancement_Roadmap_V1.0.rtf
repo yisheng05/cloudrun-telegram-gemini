@@ -1,0 +1,76 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2867
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 HelveticaNeue;\f1\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red36\green36\blue36;\red255\green255\blue255;\red30\green31\blue33;
+\red183\green187\blue184;}
+{\*\expandedcolortbl;;\cssrgb\c18824\c18824\c18824;\cssrgb\c100000\c100000\c100000;\cssrgb\c15686\c16471\c17255;
+\cssrgb\c76863\c78039\c77255;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs28 \cf2 \cb3 \expnd0\expndtw0\kerning0
+Phase 1: Build the "World Model" (The Ontology)\cb1 \
+\cb3 Before coding new features, you need to define the "truth" your agent will rely on. Unlike a standard RAG system that stores chunks of text, you will store concepts and logic.\cb1 \
+\cb3 \'95 Action: Create a small, structured database (a Knowledge Graph). You can start with a simple JSON file or a graph database like Neo4j.\cb1 \
+\cb3 \'95 Schema Design (The T-Box): Define your classes based on the Tourism Applications Ontology (TAO) methodology.\cb1 \
+\cb3 \'a0\'a0\'a0\'a0\uc0\u9702  Classes: 
+\f1 \cf4 \cb5 EatingEstablishment
+\f0 \cf2 \cb3 , 
+\f1 \cf4 \cb5 Event
+\f0 \cf2 \cb3 , 
+\f1 \cf4 \cb5 AdministrativeDivision
+\f0 \cf2 \cb3  (City/Suburb).\cb1 \
+\cb3 \'a0\'a0\'a0\'a0\uc0\u9702  Properties: 
+\f1 \cf4 \cb5 servesCuisine
+\f0 \cf2 \cb3 , 
+\f1 \cf4 \cb5 hasPriceRange
+\f0 \cf2 \cb3 , 
+\f1 \cf4 \cb5 wheelchairAccessible
+\f0 \cf2 \cb3 , 
+\f1 \cf4 \cb5 locatedIn
+\f0 \cf2 \cb3 .\cb1 \
+\cb3 \'a0\'a0\'a0\'a0\uc0\u9702  Scripts: Define complex events. For example, a 
+\f1 \cf4 \cb5 DINING_SCRIPT
+\f0 \cf2 \cb3  might imply that if a restaurant 
+\f1 \cf4 \cb5 opens_at
+\f0 \cf2 \cb3  18:00, a user cannot 
+\f1 \cf4 \cb5 eat_lunch
+\f0 \cf2 \cb3  there at 13:00.\cb1 \
+\cb3 \'95 Data Population (The A-Box): Populate this with real data (e.g., 5-10 restaurants in Singapore/Trento). Ensure you have precise attributes (e.g., "Price: High", "Cuisine: Italian").\cb1 \
+\cb3 Phase 2: Re-architecting the "Brain" (The OntoAgent Cycle)\cb1 \
+\cb3 Currently, your flow is likely: 
+\f1 \cf4 \cb5 Telegram -> Gemini -> User
+\f0 \cf2 \cb3 . You need to change this to: 
+\f1 \cf4 \cb5 Telegram -> Perception -> Deliberation -> Action -> User
+\f0 \cf2 \cb3 .\cb1 \
+\cb3 Step 1: Perception (Gemini as a Translator)\cb1 \
+\cb3 Instead of asking Gemini to answer the user's question directly, ask it to translate the user's natural language into a Text Meaning Representation (TMR).\cb1 \
+\cb3 \'95 New Prompt for Gemini:\cb1 \
+\cb3 Step 2: Deliberation (The Logic Engine)\cb1 \
+\cb3 Write a script (middleware) that sits between Gemini and Telegram. This script takes the JSON output from Gemini and queries your Knowledge Graph.\cb1 \
+\cb3 \'95 The Logic Check:\cb1 \
+\cb3 \'a0\'a0\'a0\'a0\uc0\u9702  Search: Query your database for nodes where 
+\f1 \cf4 \cb5 Class=EatingEstablishment
+\f0 \cf2 \cb3 , 
+\f1 \cf4 \cb5 Cuisine=Italian
+\f0 \cf2 \cb3 , 
+\f1 \cf4 \cb5 Price=Low
+\f0 \cf2 \cb3 , 
+\f1 \cf4 \cb5 Location=Marina Bay
+\f0 \cf2 \cb3 .\cb1 \
+\cb3 \'a0\'a0\'a0\'a0\uc0\u9702  Validation (The "Safety" Layer): Check the 
+\f1 \cf4 \cb5 MEAL_TYPE
+\f0 \cf2 \cb3 . If the user asked for "Dinner", check the 
+\f1 \cf4 \cb5 openingHours
+\f0 \cf2 \cb3  property of the results. If a restaurant closes at 5 PM, filter it out. This prevents the hallucination of recommending a closed venue.\cb1 \
+\cb3 Step 3: Action (Response Generation)\cb1 \
+\cb3 Once your middleware has the verified list of results (e.g., "Saizeriya, PastaMania"), feed this data back to Gemini to generate the final natural language response for Telegram.\cb1 \
+\cb3 \'95 New Prompt for Gemini:\cb1 \
+\cb3 Phase 3: Advanced "Agentic" Features\cb1 \
+\cb3 To truly differentiate this as an agent, implement Mixed-Initiative Learning. This means the agent doesn't just answer; it clarifies.\cb1 \
+\cb3 \'95 Detecting Ambiguity: If Gemini's TMR output contains null values for critical fields (e.g., the user says "I want food" but doesn't specify cuisine or location), your Deliberation script should detect this "Gap."\cb1 \
+\cb3 \'95 The Clarification Script: Instead of searching the database, the agent should trigger a 
+\f1 \cf4 \cb5 REQUEST_INFO
+\f0 \cf2 \cb3  script.\cb1 \
+\cb3 \'a0\'a0\'a0\'a0\uc0\u9702  Agent: "I can help with that. What type of cuisine do you prefer, and which area are you in?"\cb1 \
+\cb3 \'95 Why this matters: This moves you from a passive "search engine" to an active "collaborator" that helps the user refine their intent.}

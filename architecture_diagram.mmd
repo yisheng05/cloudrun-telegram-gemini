@@ -1,0 +1,32 @@
+graph TD
+    User([User]) -->|Telegram Message| TelegramAPI[Telegram API]
+    TelegramAPI -->|Webhook| Main[main.py: Flask App]
+    
+    subgraph "Application Core"
+        Main -->|handle_request| Middleware[middleware.py: Logic Hub]
+        Middleware -->|perception_simulate| Perception[Perception: Intent/Entities]
+        Perception -->|TMR JSON| Middleware
+        
+        Middleware -->|deliberation_query_kg| Deliberation[Deliberation: KG Query]
+        Deliberation -->|query| Knowledge[knowledge.py: KG Interface]
+        Knowledge -->|read| KGData[(data/knowledge_graph.json)]
+        Knowledge -->|Entities/Facts| Deliberation
+        
+        Deliberation -->|TMR + Facts| Middleware
+        
+        Middleware -->|action_render_response| ResponseGen[Response Generation]
+        ResponseGen -->|Prompt| LLM[Google GenAI Gemini]
+        LLM -->|Natural Language| ResponseGen
+        ResponseGen -->|Final Text| Middleware
+    end
+    
+    Middleware -->|Response Text| Main
+    Main -->|HTTP 200| TelegramAPI
+    TelegramAPI -->|Message| User
+    
+    classDef core fill:#f9f,stroke:#333,stroke-width:2px;
+    class Middleware,Main,Perception,Deliberation,ResponseGen,Knowledge core;
+    classDef data fill:#dfd,stroke:#333,stroke-width:2px;
+    class KGData data;
+    classDef external fill:#ddf,stroke:#333,stroke-width:2px;
+    class User,TelegramAPI,LLM external;

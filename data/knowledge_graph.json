@@ -1,0 +1,425 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "description": "Faceted Tourism Knowledge Graph with multi-facet inheritance",
+    "facets": [
+      "Place",
+      "Service",
+      "Event_Host",
+      "Building",
+      "Accessibility"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "rest1",
+      "class": "Restaurant",
+      "name": "Saizeriya",
+      "facets": [
+        "Place",
+        "Service",
+        "Building",
+        "Accessibility"
+      ],
+      "properties": {
+        "servesCuisine": "Italian",
+        "hasPriceRange": "Low",
+        "mealType": [
+          "lunch",
+          "dinner"
+        ],
+        "wheelchairAccessible": true,
+        "locatedIn": "Marina Bay",
+        "openingHours": "11:00-22:00",
+        "hasParking": true,
+        "hasWifi": true,
+        "averageRating": 4.2,
+        "capacity": 80
+      }
+    },
+    {
+      "id": "rest2",
+      "class": "Restaurant",
+      "name": "PastaMania",
+      "facets": [
+        "Place",
+        "Service",
+        "Building"
+      ],
+      "properties": {
+        "servesCuisine": "Italian",
+        "hasPriceRange": "Medium",
+        "mealType": [
+          "lunch",
+          "dinner"
+        ],
+        "wheelchairAccessible": false,
+        "locatedIn": "Clarke Quay",
+        "openingHours": "10:00-23:00",
+        "hasParking": false,
+        "hasWifi": true,
+        "averageRating": 4.5,
+        "capacity": 120,
+        "hasOutdoorSeating": true
+      }
+    },
+    {
+      "id": "rest3",
+      "class": "Restaurant",
+      "name": "Hainanese Corner",
+      "facets": [
+        "Place",
+        "Service",
+        "Building",
+        "Accessibility"
+      ],
+      "properties": {
+        "servesCuisine": "Singaporean",
+        "hasPriceRange": "Low",
+        "mealType": [
+          "breakfast",
+          "lunch",
+          "dinner"
+        ],
+        "wheelchairAccessible": true,
+        "locatedIn": "Chinatown",
+        "openingHours": "08:00-21:00",
+        "hasParking": true,
+        "hasWifi": false,
+        "averageRating": 4.6,
+        "capacity": 50,
+        "specialities": [
+          "chicken rice",
+          "duck rice"
+        ]
+      }
+    },
+    {
+      "id": "rest4",
+      "class": "Restaurant",
+      "name": "Jazzroom Dinner Club",
+      "facets": [
+        "Place",
+        "Service",
+        "Event_Host",
+        "Building",
+        "Accessibility"
+      ],
+      "properties": {
+        "servesCuisine": "French",
+        "hasPriceRange": "High",
+        "mealType": [
+          "dinner"
+        ],
+        "wheelchairAccessible": true,
+        "locatedIn": "Marina Bay",
+        "openingHours": "18:00-23:00",
+        "hasParking": true,
+        "hasWifi": true,
+        "averageRating": 4.8,
+        "capacity": 200,
+        "hostingEvents": [
+          "jazz_night",
+          "cocktail_hour"
+        ],
+        "eventSchedule": {
+          "jazz_night": "daily 20:00-23:00",
+          "cocktail_hour": "daily 18:00-19:00"
+        }
+      }
+    },
+    {
+      "id": "venue1",
+      "class": "EventVenue",
+      "name": "Gardens by the Bay Light Show",
+      "facets": [
+        "Place",
+        "Event_Host",
+        "Building",
+        "Accessibility"
+      ],
+      "properties": {
+        "location": "Gardens by the Bay",
+        "locatedIn": "Marina Bay",
+        "wheelchairAccessible": true,
+        "eventType": "Light Show",
+        "startTime": "19:45",
+        "endTime": "23:00",
+        "frequency": "daily",
+        "capacity": 5000,
+        "ticketPrice": 28,
+        "hasParking": true,
+        "hasRestaurants": true,
+        "hasGuidedTours": true
+      }
+    },
+    {
+      "id": "venue2",
+      "class": "EventVenue",
+      "name": "Singapore Art Museum",
+      "facets": [
+        "Place",
+        "Event_Host",
+        "Building",
+        "Accessibility"
+      ],
+      "properties": {
+        "location": "Art Museum",
+        "locatedIn": "Bras Basah",
+        "wheelchairAccessible": true,
+        "eventType": "Art Exhibition",
+        "openingHours": "10:00-19:00",
+        "closedDays": [
+          "Monday"
+        ],
+        "capacity": 2000,
+        "ticketPrice": 15,
+        "hasParking": false,
+        "hasRestaurants": true,
+        "hostingEvents": [
+          "contemporary_art",
+          "photography_exhibition"
+        ]
+      }
+    },
+    {
+      "id": "area1",
+      "class": "AdministrativeDivision",
+      "facets": [
+        "Place"
+      ],
+      "name": "Marina Bay",
+      "properties": {
+        "type": "District",
+        "city": "Singapore",
+        "attractions": [
+          "Gardens by the Bay",
+          "Marina Bay Sands",
+          "ArtScience Museum"
+        ],
+        "hasPublicTransport": true,
+        "popularFor": [
+          "dining",
+          "entertainment",
+          "sightseeing"
+        ]
+      }
+    },
+    {
+      "id": "area2",
+      "class": "AdministrativeDivision",
+      "facets": [
+        "Place"
+      ],
+      "name": "Chinatown",
+      "properties": {
+        "type": "District",
+        "city": "Singapore",
+        "attractions": [
+          "Buddhist Temple",
+          "Traditional Markets"
+        ],
+        "hasPublicTransport": true,
+        "popularFor": [
+          "dining",
+          "shopping",
+          "culture"
+        ]
+      }
+    },
+    {
+      "id": "area3",
+      "class": "AdministrativeDivision",
+      "facets": [
+        "Place"
+      ],
+      "name": "Clarke Quay",
+      "properties": {
+        "type": "District",
+        "city": "Singapore",
+        "attractions": [
+          "Riverside Restaurants",
+          "Nightlife Bars"
+        ],
+        "hasPublicTransport": true,
+        "popularFor": [
+          "dining",
+          "nightlife",
+          "entertainment"
+        ]
+      }
+    },
+    {
+      "id": "hotel1",
+      "class": "Hotel",
+      "name": "Marina Bay Sands",
+      "facets": [
+        "Place",
+        "Accommodation",
+        "Building",
+        "Accessibility",
+        "Event_Host",
+        "Shopping"
+      ],
+      "properties": {
+        "accommodationType": "Hotel",
+        "hasPriceRange": "High",
+        "locatedIn": "Marina Bay",
+        "wheelchairAccessible": true,
+        "hasPool": true,
+        "hasGym": true,
+        "hasWifi": true,
+        "stars": 5,
+        "hostingEvents": [
+          "conferences",
+          "art_exhibitions"
+        ],
+        "hasShopping": true
+      }
+    },
+    {
+      "id": "hotel2",
+      "class": "Hotel",
+      "name": "Raffles Hotel",
+      "facets": [
+        "Place",
+        "Accommodation",
+        "Building",
+        "Accessibility",
+        "Event_Host"
+      ],
+      "properties": {
+        "accommodationType": "Hotel",
+        "hasPriceRange": "High",
+        "locatedIn": "Bras Basah",
+        "wheelchairAccessible": true,
+        "hasPool": true,
+        "hasGym": true,
+        "hasWifi": true,
+        "stars": 5,
+        "hostingEvents": [
+          "high_tea",
+          "history_tours"
+        ]
+      }
+    },
+    {
+      "id": "shop1",
+      "class": "ShoppingMall",
+      "name": "ION Orchard",
+      "facets": [
+        "Place",
+        "Shopping",
+        "Building",
+        "Accessibility"
+      ],
+      "properties": {
+        "shoppingType": "Mall",
+        "hasPriceRange": "High",
+        "locatedIn": "Orchard",
+        "wheelchairAccessible": true,
+        "openingHours": "10:00-22:00",
+        "hasParking": true,
+        "hasRestaurants": true
+      }
+    },
+    {
+      "id": "shop2",
+      "class": "ShoppingMall",
+      "name": "VivoCity",
+      "facets": [
+        "Place",
+        "Shopping",
+        "Building",
+        "Accessibility"
+      ],
+      "properties": {
+        "shoppingType": "Mall",
+        "hasPriceRange": "Medium",
+        "locatedIn": "Harbourfront",
+        "wheelchairAccessible": true,
+        "openingHours": "10:00-22:00",
+        "hasParking": true,
+        "hasCinema": true,
+        "nearSentosa": true
+      }
+    },
+    {
+      "id": "nature1",
+      "class": "NaturePark",
+      "name": "Singapore Botanic Gardens",
+      "facets": [
+        "Place",
+        "NaturalFeature",
+        "Accessibility",
+        "Attraction"
+      ],
+      "properties": {
+        "parkType": "Garden",
+        "locatedIn": "Orchard",
+        "wheelchairAccessible": true,
+        "openingHours": "05:00-00:00",
+        "admissionFree": true,
+        "isUNESCO": true
+      }
+    },
+    {
+      "id": "nature2",
+      "class": "NaturePark",
+      "name": "MacRitchie Reservoir",
+      "facets": [
+        "Place",
+        "NaturalFeature",
+        "Attraction"
+      ],
+      "properties": {
+        "parkType": "Reservoir",
+        "locatedIn": "Central",
+        "wheelchairAccessible": false,
+        "activities": [
+          "hiking",
+          "kayaking"
+        ],
+        "openingHours": "07:00-19:00"
+      }
+    },
+    {
+      "id": "attraction1",
+      "class": "Attraction",
+      "name": "Sentosa Island",
+      "facets": [
+        "Place",
+        "Attraction",
+        "Accessibility",
+        "Event_Host"
+      ],
+      "properties": {
+        "attractionType": "Island",
+        "locatedIn": "Sentosa",
+        "wheelchairAccessible": true,
+        "activities": [
+          "beach",
+          "theme_parks",
+          "dining"
+        ],
+        "hasHotels": true
+      }
+    },
+    {
+      "id": "kazakhstan",
+      "class": "Country",
+      "name": "Kazakhstan",
+      "facets": [
+        "Destination",
+        "Place"
+      ],
+      "properties": {
+        "locatedIn": "Central Asia",
+        "description": "A transcontinental country located mainly in Central Asia."
+      }
+    }
+  ],
+  "aliases": {
+    "mbs": "marina_bay_sands"
+  }
+}
