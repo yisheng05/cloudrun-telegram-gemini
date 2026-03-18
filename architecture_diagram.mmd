@@ -2,7 +2,7 @@ graph TD
     User([User]) -->|Telegram Message| TelegramAPI[Telegram API]
     TelegramAPI -->|Webhook| Main[main.py: Flask App]
     
-    subgraph "Application Core (Stateful & Ontology-Driven)"
+    subgraph "Application Core (Stateful & Self-Learning)"
         Main -->|handle_request chat_id| Middleware[middleware.py: Stateful Logic Hub]
         
         Middleware <-->|Load/Update Session| Memory[(memory.py: Situation Model)]
@@ -13,9 +13,13 @@ graph TD
         Middleware -->|deliberation_query_kg| Deliberation[Deliberation: Logic Engine]
         Deliberation -->|query_by_ontology| Knowledge[knowledge.py: KG Interface]
         
-        Ontology[(src/ontology: Tourism TAO)] -.->|Rules/Facets| Knowledge
         Knowledge -->|read| KGData[(data/knowledge_graph.json)]
         Knowledge -->|Verified Facts| Deliberation
+        
+        %% Dynamic Ingestion Loop
+        Deliberation -->|Cache Miss: Trigger| DynIngest[tools/dynamic_ingest.py]
+        DynIngest -->|Triple-Threat Execution| IngestPipeline
+        KGData -.->|New Nodes Merged| Knowledge
         
         Deliberation -->|Consolidated TMR + Facts| Middleware
         
@@ -25,12 +29,12 @@ graph TD
         ResponseGen -->|Final Text| Middleware
     end
     
-    subgraph "Triple-Threat Ingestion Pipeline (Tools)"
+    subgraph IngestPipeline ["Triple-Threat Ingestion Pipeline"]
         OSM[OpenStreetMap: Physicality] -->|ingest_osm.py| RawData[Raw Nodes]
         RawData -->|ingest_enrich.py| Enforcer[Enrichment Layer]
         Enforcer -->|Pillar 2: OneMap API| OneMap[onemap_client.py]
-        Enforcer -->|Pillar 3: LLM Fallback/Context| LLM_Enrich[LLM Reasoning]
-        OneMap -.->|Fallback if Token Fails| LLM_Enrich
+        Enforcer -->|Pillar 3: LLM Context| LLM_Enrich[LLM Reasoning]
+        OneMap -.->|Fallback| LLM_Enrich
         LLM_Enrich -->|merge_kg.py| KGData
     end
     

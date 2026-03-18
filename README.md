@@ -1,6 +1,6 @@
 # Zero-Hallucination Tourism Concierge
 
-A stateful, ontology-driven Telegram bot deployed on Google Cloud Run. It uses a formal cognitive architecture to provide verified tourism information for Singapore, ensuring zero-hallucination by grounding LLM responses in a Faceted Knowledge Graph.
+A stateful, self-learning, ontology-driven Telegram bot deployed on Google Cloud Run. It uses a formal cognitive architecture to provide verified tourism information for Singapore, ensuring zero-hallucination by grounding LLM responses in a Faceted Knowledge Graph that grows dynamically based on user needs.
 
 ## 🧠 Cognitive Architecture
 ![AI Architecture](./architecture.png)
@@ -9,26 +9,23 @@ The agent follows a multi-stage stateful pipeline:
 1.  **Perception**: Extracts a Text Meaning Representation (TMR) including intent, ontology classes, and entities.
 2.  **Memory (Situation Model)**: Persists and accumulates user state across turns (keyed by `chat_id`).
 3.  **Symbolic Deliberation**: Performs ontology-driven queries against the Knowledge Graph.
-4.  **Action Rendering**: Uses Gemini to translate verified facts into fluent, professional natural language.
+4.  **Dynamic Hydro-Fill**: If the KG lacks information for a requested area, the bot automatically triggers the ingestion pipeline to fetch real-time data.
+5.  **Action Rendering**: Uses Gemini to translate verified facts into fluent, professional natural language.
 
 ## 🛠 Triple-Threat Ingestion Pipeline
-The Knowledge Graph is populated via a specialized pipeline:
-- **Physicality (OSM)**: Real-time node fetching from OpenStreetMap (`ingest_osm.py`).
+The Knowledge Graph is populated and updated via a specialized pipeline:
+- **Physicality (OSM)**: Real-time node fetching from OpenStreetMap (`ingest_osm.py`). Supports area-name and coordinate-radius fallbacks.
 - **Geo-Hierarchy (OneMap API)**: Official resolution of raw coordinates into Planning Areas via `onemap_client.py`.
 - **Enrichment & Fallback (LLM)**: Distillation of cultural context and fallback reasoning if API tokens expire.
 - **Merge Engine**: Safe integration of new nodes into the master graph (`merge_kg.py`).
 
 ## 🚀 Setup & Deployment
 Environment variables:
-- `TELEGRAM_BOT_TOKEN` (required) - your Telegram bot token
+- `TELEGRAM_BOT_TOKEN` (required)
 - `GOOGLE_API_KEY` - Gemini API key
-- `USE_TMR` (optional) - set to `true` for LLM-based perception
-
-Build and run locally:
-```bash
-docker build -t tourism-concierge .
-docker run -p 8080:8080 --env-file .env tourism-concierge
-```
+- `USE_TMR` - Set to `true` for LLM-based perception
+- `ONEMAP_EMAIL` & `ONEMAP_PASSWORD` - For official geocoding
+- `URA_ACCESS_KEY` & `DATA_GOV_API_KEY` - For extended geo-data enrichment
 
 Deploy to Google Cloud Run (example):
 
