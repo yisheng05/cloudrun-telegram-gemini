@@ -397,7 +397,11 @@ def deliberation_query_kg(tmr: Dict[str, Any]) -> Dict[str, Any]:
     # Phase 2: DELIBERATION - CHECK ACTIONABILITY
     is_actionable, clarification = check_actionability(intent, entities)
     
-    if not is_actionable:
+    # PROACTIVE LOGIC: Even if not fully 'actionable' (missing mandatory fields),
+    # we proceed if we have enough info to show *something* (class or location).
+    has_minimal_info = bool(target_class or entities.get("locatedIn") or entities.get("servesCuisine"))
+
+    if not is_actionable and not has_minimal_info:
         metrics.inc('actionability_failures')
         return {
             "verified": [], "filters": {}, "filtered_out": [], "tmr": tmr,
@@ -426,6 +430,11 @@ def deliberation_query_kg(tmr: Dict[str, Any]) -> Dict[str, Any]:
         required_facets = ["Place"]
         if "attraction_type" in entities:
             filters["attraction_type"] = entities["attraction_type"]
+
+    if target_class == "NaturePark":
+        required_facets = ["Place"]
+        if "activity_type" in entities:
+            filters["activity_type"] = entities["activity_type"]
 
     if "locatedIn" in entities:
         filters["locatedIn"] = entities["locatedIn"]
@@ -461,11 +470,19 @@ def deliberation_query_kg(tmr: Dict[str, Any]) -> Dict[str, Any]:
         verified.append(c)
 
     # Phase 5: Determine response mode
-    mode = "KG_DRIVEN" if verified else "LLM_FALLBACK"
+    if verified:
+        mode = "KG_DRIVEN"
+    elif not is_actionable:
+        # No results AND not actionable -> hard block
+        mode = "CLARIFICATION_NEEDED"
+    else:
+        mode = "LLM_FALLBACK"
     
     return {
         "verified": verified, "filters": filters, "filtered_out": filtered_out,
-        "tmr": tmr, "mode": mode, "required_facets": required_facets
+        "tmr": tmr, "mode": mode, "required_facets": required_facets,
+        "is_actionable": is_actionable,
+        "clarification_message": clarification
     }
 
 
@@ -569,14 +586,30 @@ def produce_final_response(call_gemini_fn: Any, verified: Dict[str, Any], user_t
         facts_lines.append(" | ".join(facts_parts))
 
     facts_blob = "\n".join(facts_lines)
-    prompt = (
-        f"You are a helpful tourism concierge. The user asked: {user_text}\n\n"
-        "Below are VERIFIED facts from our Tourism Domain Knowledge Graph. "
-        "Use ONLY these facts to create a concise, polished reply. "
-        "Highlight specific features like children's menus or accessibility if requested. "
-        "Do NOT use markdown. Keep the reply under 3500 characters.\n\n"
-        f"VERIFIED_FACTS:\n{facts_blob}\n\nReply:"
-    )
+    is_actionable = verified.get("is_actionable", True)
+    clarification = verified.get("clarification_message")
+
+    if not is_actionable and clarification:
+        # PROACTIVE PROMPT: Show results AND ask the missing info
+        prompt = (
+            f"You are a helpful tourism concierge. The user asked: {user_text}\n\n"
+            "I found some initial options for them based on verified facts, but I need more info to give a perfect answer.\n"
+            f"REQUIRED CLARIFICATION: {clarification}\n\n"
+            "Below are some VERIFIED facts from our Knowledge Graph. "
+            "1. Show these options to the user politely.\n"
+            "2. THEN, ask the REQUIRED CLARIFICATION at the end of your response to help narrow it down.\n"
+            "Do NOT invent facts. Keep the reply under 3500 characters.\n\n"
+            f"VERIFIED_FACTS:\n{facts_blob}\n\nReply:"
+        )
+    else:
+        prompt = (
+            f"You are a helpful tourism concierge. The user asked: {user_text}\n\n"
+            "Below are VERIFIED facts from our Tourism Domain Knowledge Graph. "
+            "Use ONLY these facts to create a concise, polished reply. "
+            "Highlight specific features like children's menus or accessibility if requested. "
+            "Do NOT use markdown. Keep the reply under 3500 characters.\n\n"
+            f"VERIFIED_FACTS:\n{facts_blob}\n\nReply:"
+        )
 
     try:
         raw = call_gemini_fn(prompt)

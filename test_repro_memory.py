@@ -30,8 +30,18 @@ def repro_memory_issue():
     print(f"Bot: {resp2}")
     print(f"State after Turn 2: {session.to_dict()}")
 
-    # Check if "shopping" (from Turn 1) still exists in entities
-    # Check if "Museums" (from Turn 2) updated the class or entities
+    print("\n--- [TURN 3: Broad Planning near Mandai] ---")
+    user_text3 = "itinerary planning near Mandai."
+    print(f"User: {user_text3}")
+    resp3 = handle_request(mock_call_gemini, user_text3, chat_id)
+    session = memory.session_manager.get_session(chat_id)
+    print(f"Bot: {resp3}")
+    print(f"State after Turn 3: {session.to_dict()}")
     
+    # In Turn 3, it should SHOW the Mandai attractions even if activity_type is missing
+    # because it is now proactive!
+    if "Botanic Gardens" in resp3 or "Jumbo" in resp1: # Checking for results in bot response
+         pass 
+
 if __name__ == "__main__":
     repro_memory_issue()

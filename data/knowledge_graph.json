@@ -529,6 +529,30 @@
         "openingHours": "10:00-19:00",
         "description": "The oldest museum in Singapore, tracing its history back to the Raffles Library and Museum."
       }
+    },
+    {
+      "id": "attraction_zoo",
+      "class": "Attraction",
+      "name": "Singapore Zoo",
+      "facets": ["Place", "Accessibility", "ActivityFeature"],
+      "properties": {
+        "locatedIn": "Mandai",
+        "attraction_type": "Nature",
+        "wheelchairAccessible": true,
+        "description": "A world-renowned wildlife park featuring animals in open, naturalistic habitats."
+      }
+    },
+    {
+      "id": "attraction_river_wonders",
+      "class": "Attraction",
+      "name": "River Wonders",
+      "facets": ["Place", "Accessibility"],
+      "properties": {
+        "locatedIn": "Mandai",
+        "attraction_type": "Nature",
+        "wheelchairAccessible": true,
+        "description": "Asia's first and only river-themed wildlife park, home to the giant pandas Kai Kai and Jia Jia."
+      }
     }
   ],
   "aliases": {
