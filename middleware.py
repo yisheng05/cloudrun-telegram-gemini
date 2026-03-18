@@ -10,6 +10,7 @@ import knowledge
 import metrics
 import circuit_breaker
 import memory
+from tools import dynamic_ingest
 
 
 # ============================================================================
@@ -458,16 +459,38 @@ def deliberation_query_kg(tmr: Dict[str, Any]) -> Dict[str, Any]:
 
     # Phase 4: Validation layer - filter candidates by time constraints
     desired_time = entities.get("time") or entities.get("when")
-    verified = []
-    filtered_out = []
-    for c in candidates:
-        # Opening hours check
-        if desired_time:
-            oh = c.get("properties", {}).get("openingHours")
-            if not is_open_at(oh, desired_time):
-                filtered_out.append({"node": c, "reason": "closed_at_requested_time"})
-                continue
-        verified.append(c)
+    
+    def run_validation(nodes):
+        v, f = [], []
+        for c in nodes:
+            if desired_time:
+                oh = c.get("properties", {}).get("openingHours")
+                if not is_open_at(oh, desired_time):
+                    f.append({"node": c, "reason": "closed_at_requested_time"})
+                    continue
+            v.append(c)
+        return v, f
+
+    verified, filtered_out = run_validation(candidates)
+
+    # DYNAMIC INGESTION HOOK: If no results but we have a location, 
+    # try to fetch real-time data on demand.
+    dynamic_update_happened = False
+    if not verified and entities.get("locatedIn") and intent != "chat":
+        logging.info(f"KG miss for {entities.get('locatedIn')}. Triggering dynamic ingestion...")
+        try:
+            added = dynamic_ingest.run_dynamic_ingestion(entities["locatedIn"], target_class or "Restaurant")
+            if added > 0:
+                dynamic_update_happened = True
+                # Re-query after ingestion
+                candidates = knowledge.query_by_ontology(
+                    target_class=target_class,
+                    facets=required_facets,
+                    properties=filters
+                )
+                verified, filtered_out = run_validation(candidates)
+        except Exception as e:
+            logging.error(f"Dynamic Ingestion failed: {e}")
 
     # Phase 5: Determine response mode
     if verified:
@@ -482,7 +505,8 @@ def deliberation_query_kg(tmr: Dict[str, Any]) -> Dict[str, Any]:
         "verified": verified, "filters": filters, "filtered_out": filtered_out,
         "tmr": tmr, "mode": mode, "required_facets": required_facets,
         "is_actionable": is_actionable,
-        "clarification_message": clarification
+        "clarification_message": clarification,
+        "dynamic_update_happened": dynamic_update_happened
     }
 
 
@@ -588,11 +612,17 @@ def produce_final_response(call_gemini_fn: Any, verified: Dict[str, Any], user_t
     facts_blob = "\n".join(facts_lines)
     is_actionable = verified.get("is_actionable", True)
     clarification = verified.get("clarification_message")
+    dynamic_update = verified.get("dynamic_update_happened", False)
+
+    dynamic_note = ""
+    if dynamic_update:
+        dynamic_note = "[SYSTEM NOTE: I have just updated my database with real-time information from OpenStreetMap and OneMap for this area. Mention this once naturally in your reply.]\n\n"
 
     if not is_actionable and clarification:
         # PROACTIVE PROMPT: Show results AND ask the missing info
         prompt = (
             f"You are a helpful tourism concierge. The user asked: {user_text}\n\n"
+            f"{dynamic_note}"
             "I found some initial options for them based on verified facts, but I need more info to give a perfect answer.\n"
             f"REQUIRED CLARIFICATION: {clarification}\n\n"
             "Below are some VERIFIED facts from our Knowledge Graph. "
@@ -604,6 +634,7 @@ def produce_final_response(call_gemini_fn: Any, verified: Dict[str, Any], user_t
     else:
         prompt = (
             f"You are a helpful tourism concierge. The user asked: {user_text}\n\n"
+            f"{dynamic_note}"
             "Below are VERIFIED facts from our Tourism Domain Knowledge Graph. "
             "Use ONLY these facts to create a concise, polished reply. "
             "Highlight specific features like children's menus or accessibility if requested. "

@@ -534,7 +534,11 @@
       "id": "attraction_zoo",
       "class": "Attraction",
       "name": "Singapore Zoo",
-      "facets": ["Place", "Accessibility", "ActivityFeature"],
+      "facets": [
+        "Place",
+        "Accessibility",
+        "ActivityFeature"
+      ],
       "properties": {
         "locatedIn": "Mandai",
         "attraction_type": "Nature",
@@ -546,12 +550,66 @@
       "id": "attraction_river_wonders",
       "class": "Attraction",
       "name": "River Wonders",
-      "facets": ["Place", "Accessibility"],
+      "facets": [
+        "Place",
+        "Accessibility"
+      ],
       "properties": {
         "locatedIn": "Mandai",
         "attraction_type": "Nature",
         "wheelchairAccessible": true,
         "description": "Asia's first and only river-themed wildlife park, home to the giant pandas Kai Kai and Jia Jia."
+      }
+    },
+    {
+      "id": "osm_602549224",
+      "class": "Restaurant",
+      "name": "Liad Fan Hong Kong Soy Sauce Chicken Rice & Noodle",
+      "facets": [
+        "Place",
+        "TourismService"
+      ],
+      "properties": {
+        "locatedIn": "Rochor",
+        "osm_id": 602549224,
+        "lat": 1.2819879,
+        "lon": 103.8432653,
+        "servesCuisine": "Chinese",
+        "description": "Located near the Rochor Canal, the area reflects Singapore's multicultural heritage and is known for its diverse culinary offerings, reflecting the island's history as a trading port."
+      }
+    },
+    {
+      "id": "osm_602549234",
+      "class": "Restaurant",
+      "name": "People's Park Food Centre Blk 32",
+      "facets": [
+        "Place",
+        "TourismService"
+      ],
+      "properties": {
+        "locatedIn": "Outram",
+        "osm_id": 602549234,
+        "lat": 1.284959,
+        "lon": 103.8425704,
+        "servesCuisine": "Regional",
+        "description": "People's Park Food Centre, located in the heart of Chinatown, is a bustling hawker centre reflecting the area's historical and ongoing importance as a focal point for Chinese Singaporeans and diverse culinary traditions."
+      }
+    },
+    {
+      "id": "osm_1427271785",
+      "class": "Restaurant",
+      "name": "Hongdae Korean BBQ",
+      "facets": [
+        "Place",
+        "TourismService"
+      ],
+      "properties": {
+        "locatedIn": "Tanjong Pagar",
+        "osm_id": 1427271785,
+        "lat": 1.2790473,
+        "lon": 103.841753,
+        "servesCuisine": "Korean",
+        "description": "Tanjong Pagar, historically a port area and home to many dockworkers, has evolved into a vibrant district known for its preserved shophouses, Korean eateries, and a mix of traditional and modern influences."
       }
     }
   ],
