@@ -5,43 +5,52 @@ from typing import Dict, Any, Optional
 class SituationModel:
     """
     Accumulates state and entities across multiple conversation turns.
-    Inspired by the zero-hallucination-auditor architecture.
+    Upgraded to support dialogue_act, goal, and negative constraints.
     """
     def __init__(self, chat_id: int):
         self.chat_id = chat_id
-        self.intent: Optional[str] = None
+        self.dialogue_act: str = "inform" # e.g. "greeting", "request", "correction"
+        self.goal: str = "inform"         # e.g. "inform", "booking"
         self.target_class: Optional[str] = None
-        self.entities: Dict[str, Any] = {}
+        self.entities: Dict[str, Any] = {} # Key: { "value": val, "op": "MUST"|"NOT" }
         self.last_updated = time.time()
-        self.history: list = [] # Store raw text history if needed
+        self.history: list = []
 
     def update(self, tmr: Dict[str, Any], text: Optional[str] = None):
         """Merges a new Text Meaning Representation into the existing state."""
-        new_intent = tmr.get("intent")
+        new_dialogue_act = tmr.get("dialogue_act")
+        new_goal = tmr.get("goal") or tmr.get("intent")
         new_class = tmr.get("class")
         new_entities = tmr.get("entities", {})
 
-        # 1. Update Class and Intent Transition
-        # If class changes, we force an update to the intent to 'inform' 
-        # to allow querying the new class immediately.
+        # 1. Update Dialogue Act and Goal
+        if new_dialogue_act:
+            self.dialogue_act = new_dialogue_act
+        if new_goal:
+            self.goal = new_goal
+
+        # 2. Update Class and Intent Transition
+        # If class changes, we clear old class-specific entities
         if new_class and new_class != self.target_class:
-            self.entities.pop("activity_type", None)
-            self.entities.pop("nature_feature", None)
-            self.entities.pop("shopping_type", None)
+            # Clear specific keys that aren't location or accessibility
+            keys_to_keep = ["locatedIn", "wheelchairAccessible", "price_range"]
+            self.entities = {k: v for k, v in self.entities.items() if k in keys_to_keep}
             self.target_class = new_class
-            self.intent = "inform" # Force transition to allow searching new class
+            self.goal = "inform"
         elif not self.target_class:
             self.target_class = new_class
 
-        # 2. Update Intent (only if not already forced by class change)
-        if new_intent and new_intent not in ["inform", "query"]:
-            self.intent = new_intent
-        elif not self.intent:
-            self.intent = new_intent or "inform"
-
-        # 3. Accumulate Entities
+        # 3. Accumulate Entities with Constraint Logic
         for k, v in new_entities.items():
-            if v is not None:
+            # If v is a simple value, convert to long form
+            if not isinstance(v, dict):
+                v = {"value": v, "op": "MUST"}
+            
+            # If dialogue act is 'correction', overwrite even if key exists
+            if self.dialogue_act == "correction" or k not in self.entities:
+                self.entities[k] = v
+            else:
+                # Merge logic: new values overwrite same key
                 self.entities[k] = v
 
         if text:
@@ -50,14 +59,16 @@ class SituationModel:
         self.last_updated = time.time()
 
     def clear(self):
-        self.intent = None
+        self.dialogue_act = "inform"
+        self.goal = "inform"
         self.target_class = None
         self.entities = {}
         self.history = []
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "intent": self.intent,
+            "dialogue_act": self.dialogue_act,
+            "goal": self.goal,
             "class": self.target_class,
             "entities": self.entities
         }

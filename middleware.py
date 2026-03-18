@@ -177,135 +177,105 @@ def request_info_script(
 def perception_simulate(text: str) -> Dict[str, Any]:
     # Very small heuristic extractor for demo purposes
     text_l = text.lower()
-    tmr = {"intent": "inform", "entities": {}}
+    tmr = {"dialogue_act": "request", "goal": "inform", "entities": {}}
     
-    # Determine intent - check for chat/general_knowledge FIRST
-    if any(x in text_l for x in ["hello", "hi", "hey", "thanks", "thank you", "who are you", "what's your name", "how are you", "good morning", "good night"]):
-        tmr["intent"] = "chat"
-        return tmr
+    # Dialogue Act detection
+    is_greeting = any(x in text_l for x in ["hello", "hi", "hey", "good morning", "good night"])
+    if is_greeting:
+        tmr["dialogue_act"] = "greeting"
+        tmr["goal"] = "chat"
+    
+    if any(x in text_l for x in ["no", "instead", "mean", "not that", "actually"]):
+        tmr["dialogue_act"] = "correction"
+
+    # Negative Constraint detection
+    is_negated = "not in" in text_l or "but not" in text_l or "except" in text_l
+    op = "NOT" if is_negated else "MUST"
     
     # Location detection
     found_location = False
     for location in ["marina bay", "marina", "chinatown", "clarke quay", "bras basah", "orchard", "sentosa", "harbourfront", "central", "kazakhstan", "mercury", "marine parade", "pasir ris", "mandai", "river valley", "singapore river", "serangoon", "rochor"]:
         if location in text_l:
             found_location = True
+            val = location.title()
             if location in ["kazakhstan", "mercury"]:
-                tmr["entities"]["destination"] = location.title()
-                tmr["entities"]["locatedIn"] = location.title() 
+                tmr["entities"]["destination"] = {"value": val, "op": "MUST"}
+                tmr["entities"]["locatedIn"] = {"value": val, "op": "MUST"}
             else:
-                tmr["entities"]["locatedIn"] = location.title()
-                tmr["entities"]["servesCuisine_or_locatedIn"] = location.title()
+                tmr["entities"]["locatedIn"] = {"value": val, "op": op}
+                tmr["entities"]["servesCuisine_or_locatedIn"] = {"value": val, "op": op}
             break
 
     # Check for ontology classes
     if any(x in text_l for x in ["restaurant", "food", "eat", "dinner", "lunch", "breakfast", "cafe", "dining"]):
         tmr["class"] = "Restaurant"
-        tmr["intent"] = "inform"
+        tmr["goal"] = "inform"
     elif any(x in text_l for x in ["museum", "art gallery", "exhibition"]):
         tmr["class"] = "Attraction"
-        tmr["intent"] = "inform"
-        tmr["entities"]["attraction_type"] = "Museum"
+        tmr["goal"] = "inform"
+        tmr["entities"]["attraction_type"] = {"value": "Museum", "op": "MUST"}
     elif any(x in text_l for x in ["attraction", "place", "see", "visit", "tourist"]):
         tmr["class"] = "Attraction"
-        tmr["intent"] = "inform"
+        tmr["goal"] = "inform"
+
+    # Extract entities
+    if "italian" in text_l or "pasta" in text_l:
+        tmr["entities"]["servesCuisine"] = {"value": "Italian", "op": "MUST"}
+    if "japanese" in text_l or "sushi" in text_l:
+        tmr["entities"]["servesCuisine"] = {"value": "Japanese", "op": "MUST"}
+    if "singaporean" in text_l or "local" in text_l or "asian" in text_l:
+        tmr["entities"]["servesCuisine"] = {"value": "Singaporean", "op": "MUST"}
+    if "french" in text_l:
+        tmr["entities"]["servesCuisine"] = {"value": "French", "op": "MUST"}
 
     # Children's menu detection
     if "children" in text_l or "kids" in text_l or "child" in text_l:
-        tmr["entities"]["childrensMenu"] = True
+        tmr["entities"]["childrensMenu"] = {"value": True, "op": "MUST"}
     
-    # Check for general knowledge questions - ONLY if no domain keywords found
+    # General knowledge detection
     if not found_location and not tmr.get("class") and any(x in text_l for x in ["what", "when", "where", "why", "how", "who", "which", "tell me about", "explain", "won the", "is", "are"]):
         if not any(x in text_l for x in ["book", "reserve", "hotel", "event", "activity", "show", "concert", "shopping", "mall", "market", "shop", "park", "nature", "garden", "hike"]):
-            tmr["intent"] = "general_knowledge"
+            tmr["goal"] = "general_knowledge"
             return tmr
 
-    # Establishment name detection (Specific for our new nodes)
+    # Establishment name detection
     if "jumbo" in text_l:
-        tmr["entities"]["name"] = "Jumbo Seafood"
+        tmr["entities"]["name"] = {"value": "Jumbo Seafood", "op": "MUST"}
         tmr["class"] = "Restaurant"
     if "suki-ya" in text_l or "sukiya" in text_l:
-        tmr["entities"]["name"] = "Suki-ya"
+        tmr["entities"]["name"] = {"value": "Suki-ya", "op": "MUST"}
         tmr["class"] = "Restaurant"
     
-    # Time detection (HH:MM or meal keywords)
+    # Time detection (simplified)
     m = re.search(r"\b([01]?\d|2[0-3]):[0-5]\d\b", text_l)
     if m:
-        tmr["entities"]["time"] = m.group(0)
-    else:
-        if "breakfast" in text_l:
-            tmr["entities"]["mealType"] = "breakfast"
-            tmr["entities"]["time"] = "08:00"
-        elif "lunch" in text_l:
-            tmr["entities"]["mealType"] = "lunch"
-            tmr["entities"]["time"] = "12:00"
-        elif "dinner" in text_l:
-            tmr["entities"]["mealType"] = "dinner"
-            tmr["entities"]["time"] = "19:00"
+        tmr["entities"]["time"] = {"value": m.group(0), "op": "MUST"}
     
-    # Party size detection
-    party_match = re.search(r"\b(\d+)\s*(?:people|person|guests?|of us)\b", text_l)
-    if party_match:
-        tmr["entities"]["party_size"] = int(party_match.group(1))
+    # Accessibility
+    if "wheelchair" in text_l or "accessible" in text_l:
+        tmr["entities"]["wheelchairAccessible"] = {"value": True, "op": "MUST"}
     
-    # Accessibility detection
-    if "wheelchair" in text_l or "accessible" in text_l or "disability" in text_l or "mobility" in text_l:
-        tmr["entities"]["wheelchairAccessible"] = True
-        tmr["entities"]["accessibility"] = "wheelchair_accessible"
-    
-    # Price range detection
-    if "cheap" in text_l or "budget" in text_l or "inexpensive" in text_l or "low price" in text_l:
-        tmr["entities"]["price_range"] = "Low"
-    elif "expensive" in text_l or "high end" in text_l or "luxury" in text_l or "upscale" in text_l:
-        tmr["entities"]["price_range"] = "High"
-    elif "medium" in text_l or "moderate" in text_l or "mid" in text_l:
-        tmr["entities"]["price_range"] = "Medium"
-    
-    # Event detection
-    if "jazz" in text_l or "music" in text_l or "concert" in text_l:
-        tmr["entities"]["event_type"] = "jazz_night" if "jazz" in text_l else "concert"
-    if "light show" in text_l or "show" in text_l:
-        tmr["entities"]["event_type"] = "light_show"
-    if "exhibition" in text_l or "art" in text_l or "museum" in text_l:
-        tmr["entities"]["event_type"] = "art_exhibition"
-
-    # Sightseeing detection
+    # Activity detection
     if "sightseeing" in text_l or "tour" in text_l:
-        tmr["intent"] = "activity"
-        tmr["entities"]["activity_type"] = "sightseeing"
-
-    # Shopping detection
-    if "shop" in text_l or "mall" in text_l or "buy" in text_l or "market" in text_l:
-        tmr["intent"] = "shopping"
-        tmr["class"] = "ShoppingMall"
-        if "mall" in text_l:
-            tmr["entities"]["shopping_type"] = "Mall"
-        elif "market" in text_l:
-            tmr["entities"]["shopping_type"] = "Market"
-        else:
-             tmr["entities"]["shopping_type"] = "General" 
-
-    # Nature/Park detection
-    if "park" in text_l or "nature" in text_l or "garden" in text_l or "hike" in text_l:
-        tmr["intent"] = "activity"
-        tmr["class"] = "NaturePark"
-        tmr["entities"]["activity_type"] = "Nature"
-        tmr["entities"]["nature_feature"] = True
+        tmr["goal"] = "activity"
+        tmr["entities"]["activity_type"] = {"value": "sightseeing", "op": "MUST"}
 
     return tmr
 
 
 def build_tmr_prompt(user_text: str) -> str:
     examples = (
-        "User: I want cheap Italian food for kids near Marina Bay\nTMR: {\"intent\": \"inform\", \"class\": \"Restaurant\", \"entities\": {\"servesCuisine\": \"Italian\", \"locatedIn\": \"Marina Bay\", \"price_range\": \"Low\", \"childrensMenu\": true}}\n",
-        "User: Find me a wheelchair accessible hotel\nTMR: {\"intent\": \"booking\", \"class\": \"Hotel\", \"entities\": {\"booking_type\": \"Hotel\", \"wheelchairAccessible\": true}}\n",
-        "User: Who are you?\nTMR: {\"intent\": \"chat\", \"entities\": {}}\n",
+        "User: I want cheap Italian food for kids near Marina Bay\nTMR: {\"dialogue_act\": \"request\", \"goal\": \"inform\", \"class\": \"Restaurant\", \"entities\": {\"servesCuisine\": {\"value\": \"Italian\", \"op\": \"MUST\"}, \"locatedIn\": {\"value\": \"Marina Bay\", \"op\": \"MUST\"}, \"price_range\": {\"value\": \"Low\", \"op\": \"MUST\"}, \"childrensMenu\": {\"value\": true, \"op\": \"MUST\"}}}\n",
+        "User: Find me a cafe, but not in Orchard\nTMR: {\"dialogue_act\": \"request\", \"goal\": \"inform\", \"class\": \"Restaurant\", \"entities\": {\"servesCuisine\": {\"value\": \"Cafe\", \"op\": \"MUST\"}, \"locatedIn\": {\"value\": \"Orchard\", \"op\": \"NOT\"}}}\n",
+        "User: No, I meant Japanese food\nTMR: {\"dialogue_act\": \"correction\", \"goal\": \"inform\", \"entities\": {\"servesCuisine\": {\"value\": \"Japanese\", \"op\": \"MUST\"}}}\n",
+        "User: Who are you?\nTMR: {\"dialogue_act\": \"greeting\", \"goal\": \"chat\", \"entities\": {}}\n",
     )
     prompt = (
-        "Extract a concise Text Meaning Representation (TMR) from the user's message.\n"
-        "Output only a single JSON object with keys: intent (string), class (string, optional), entities (object).\n"
-        "Intents: 'inform', 'booking', 'chat', 'general_knowledge', 'shopping', 'activity'.\n"
-        "Classes: 'Restaurant', 'Hotel', 'NaturePark', 'ShoppingMall'.\n"
-        "Entities keys: 'servesCuisine', 'locatedIn', 'price_range', 'childrensMenu', 'wheelchairAccessible', 'booking_type', 'destination'.\n"
+        "Extract a Text Meaning Representation (TMR) from the user's message.\n"
+        "Output only a single JSON object with keys: dialogue_act, goal, class (optional), entities (object).\n"
+        "Dialogue Acts: 'request', 'correction', 'greeting', 'confirmation'.\n"
+        "Goals: 'inform', 'booking', 'chat', 'activity'.\n"
+        "Entities: Each value MUST be an object: {\"value\": ..., \"op\": \"MUST\"|\"NOT\"}.\n"
         "Respond with valid JSON only.\n\n"
         f"{''.join(examples)}"
         f"User: {user_text}\nTMR:"
@@ -387,20 +357,22 @@ def request_tmr_from_model(call_gemini_fn: Any, user_text: str, max_retries: int
 
 
 def deliberation_query_kg(tmr: Dict[str, Any]) -> Dict[str, Any]:
-    intent = tmr.get("intent", "inform")
+    goal = tmr.get("goal") or tmr.get("intent", "inform")
     entities = tmr.get("entities", {})
-    target_class = tmr.get("class") # NEW: Specific ontology class like Restaurant
+    target_class = tmr.get("class")
 
-    # Phase 1: Dual-Path check - does this need KG at all?
-    if intent in ["chat", "general_knowledge"]:
+    # Phase 1: Dual-Path check
+    if goal in ["chat", "general_knowledge"]:
         return {"verified": [], "filters": {}, "filtered_out": [], "tmr": tmr, "mode": "LLM_ONLY"}
 
+    # Extract simple values for actionability check
+    flat_entities = {k: (v.get("value") if isinstance(v, dict) else v) for k, v in entities.items()}
+
     # Phase 2: DELIBERATION - CHECK ACTIONABILITY
-    is_actionable, clarification = check_actionability(intent, entities)
+    is_actionable, clarification = check_actionability(goal, flat_entities)
     
-    # PROACTIVE LOGIC: Even if not fully 'actionable' (missing mandatory fields),
-    # we proceed if we have enough info to show *something* (class or location).
-    has_minimal_info = bool(target_class or entities.get("locatedIn") or entities.get("servesCuisine"))
+    # PROACTIVE LOGIC
+    has_minimal_info = bool(target_class or flat_entities.get("locatedIn") or flat_entities.get("servesCuisine"))
 
     if not is_actionable and not has_minimal_info:
         metrics.inc('actionability_failures')
@@ -411,54 +383,60 @@ def deliberation_query_kg(tmr: Dict[str, Any]) -> Dict[str, Any]:
     
     # Phase 3: Build ontology-driven query parameters
     filters = {}
+    exclude_filters = {}
     required_facets = []
     
-    # Map intent/entities to facets and classes
-    if target_class == "Restaurant" or intent == "inform":
-        # Default to Restaurant if intent is inform and no class specified
-        if not target_class:
-            target_class = "Restaurant"
+    for k, v in entities.items():
+        if not isinstance(v, dict):
+            v = {"value": v, "op": "MUST"}
         
-        if target_class == "Restaurant":
-            required_facets = ["TourismService"]
-            if "servesCuisine" in entities:
-                filters["servesCuisine"] = entities["servesCuisine"]
-            if "childrensMenu" in entities:
-                filters["childrensMenu"] = entities["childrensMenu"]
-                required_facets.append("ActivityFeature")
-    
-    if target_class == "Attraction":
-        required_facets = ["Place"]
-        if "attraction_type" in entities:
-            filters["attraction_type"] = entities["attraction_type"]
+        val = v.get("value")
+        op = v.get("op", "MUST")
+        
+        # Mapping specific keys to KG property names
+        kg_key = k
+        if k == "servesCuisine_or_locatedIn": continue # Skip composite helper
+        if k == "price_range": kg_key = "hasPriceRange"
+        
+        if op == "NOT":
+            exclude_filters[kg_key] = val
+        else:
+            filters[kg_key] = val
 
-    if target_class == "NaturePark":
-        required_facets = ["Place"]
-        if "activity_type" in entities:
-            filters["activity_type"] = entities["activity_type"]
-
-    if "locatedIn" in entities:
-        filters["locatedIn"] = entities["locatedIn"]
-    if "price_range" in entities:
-        filters["hasPriceRange"] = entities["price_range"]
-    if "accessibility" in entities or "wheelchairAccessible" in entities:
-        required_facets.append("Accessibility")
-        if "wheelchairAccessible" in entities:
-            filters["wheelchairAccessible"] = entities["wheelchairAccessible"]
+    # Facet Mapping
+    if target_class == "Restaurant": required_facets = ["TourismService"]
+    if target_class == "Attraction": required_facets = ["Place"]
+    if target_class == "NaturePark": required_facets = ["Place"]
 
     # Use the new ontology-driven query engine
     try:
+        # Initial candidates
         candidates = knowledge.query_by_ontology(
             target_class=target_class,
             facets=required_facets,
             properties=filters
         )
+        
+        # Apply Negative Constraints (Pillar 1 Implementation)
+        if exclude_filters:
+            filtered_candidates = []
+            for c in candidates:
+                props = c.get("properties", {})
+                keep = True
+                for ex_k, ex_v in exclude_filters.items():
+                    if props.get(ex_k) == ex_v:
+                        keep = False
+                        break
+                if keep:
+                    filtered_candidates.append(c)
+            candidates = filtered_candidates
+
     except Exception as e:
         logging.error(f"Ontology query failed: {e}")
         candidates = knowledge.find_by_filters(filters)
 
-    # Phase 4: Validation layer - filter candidates by time constraints
-    desired_time = entities.get("time") or entities.get("when")
+    # Phase 4: Validation layer
+    desired_time = flat_entities.get("time") or flat_entities.get("when")
     
     def run_validation(nodes):
         v, f = [], []
@@ -473,40 +451,31 @@ def deliberation_query_kg(tmr: Dict[str, Any]) -> Dict[str, Any]:
 
     verified, filtered_out = run_validation(candidates)
 
-    # DYNAMIC INGESTION HOOK: If no results but we have a location, 
-    # try to fetch real-time data on demand.
+    # DYNAMIC INGESTION HOOK
     dynamic_update_happened = False
-    if not verified and entities.get("locatedIn") and intent != "chat":
-        logging.info(f"KG miss for {entities.get('locatedIn')}. Triggering dynamic ingestion...")
+    if not verified and flat_entities.get("locatedIn") and goal != "chat":
         try:
-            added = dynamic_ingest.run_dynamic_ingestion(entities["locatedIn"], target_class or "Restaurant")
+            added = dynamic_ingest.run_dynamic_ingestion(flat_entities["locatedIn"], target_class or "Restaurant")
             if added > 0:
                 dynamic_update_happened = True
-                # Re-query after ingestion
-                candidates = knowledge.query_by_ontology(
-                    target_class=target_class,
-                    facets=required_facets,
-                    properties=filters
-                )
+                candidates = knowledge.query_by_ontology(target_class=target_class, facets=required_facets, properties=filters)
+                # Re-apply exclusions
+                if exclude_filters:
+                    candidates = [c for c in candidates if not any(c.get("properties", {}).get(ek) == ev for ek, ev in exclude_filters.items())]
                 verified, filtered_out = run_validation(candidates)
         except Exception as e:
             logging.error(f"Dynamic Ingestion failed: {e}")
 
     # Phase 5: Determine response mode
-    if verified:
-        mode = "KG_DRIVEN"
-    elif not is_actionable:
-        # No results AND not actionable -> hard block
-        mode = "CLARIFICATION_NEEDED"
-    else:
-        mode = "LLM_FALLBACK"
+    if verified: mode = "KG_DRIVEN"
+    elif not is_actionable: mode = "CLARIFICATION_NEEDED"
+    else: mode = "LLM_FALLBACK"
     
     return {
-        "verified": verified, "filters": filters, "filtered_out": filtered_out,
-        "tmr": tmr, "mode": mode, "required_facets": required_facets,
-        "is_actionable": is_actionable,
-        "clarification_message": clarification,
-        "dynamic_update_happened": dynamic_update_happened
+        "verified": verified, "filters": filters, "exclude_filters": exclude_filters, 
+        "filtered_out": filtered_out, "tmr": tmr, "mode": mode, 
+        "required_facets": required_facets, "is_actionable": is_actionable,
+        "clarification_message": clarification, "dynamic_update_happened": dynamic_update_happened
     }
 
 
