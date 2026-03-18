@@ -2,22 +2,33 @@ graph TD
     User([User]) -->|Telegram Message| TelegramAPI[Telegram API]
     TelegramAPI -->|Webhook| Main[main.py: Flask App]
     
-    subgraph "Application Core"
-        Main -->|handle_request| Middleware[middleware.py: Logic Hub]
-        Middleware -->|perception_simulate| Perception[Perception: Intent/Entities]
+    subgraph "Application Core (Stateful & Ontology-Driven)"
+        Main -->|handle_request chat_id| Middleware[middleware.py: Stateful Logic Hub]
+        
+        Middleware <-->|Load/Update Session| Memory[(memory.py: Situation Model)]
+        
+        Middleware -->|perception_simulate| Perception[Perception: Intent/Entities/Class]
         Perception -->|TMR JSON| Middleware
         
-        Middleware -->|deliberation_query_kg| Deliberation[Deliberation: KG Query]
-        Deliberation -->|query| Knowledge[knowledge.py: KG Interface]
+        Middleware -->|deliberation_query_kg| Deliberation[Deliberation: Logic Engine]
+        Deliberation -->|query_by_ontology| Knowledge[knowledge.py: KG Interface]
+        
+        Ontology[(src/ontology: Tourism TAO)] -.->|Rules/Facets| Knowledge
         Knowledge -->|read| KGData[(data/knowledge_graph.json)]
-        Knowledge -->|Entities/Facts| Deliberation
+        Knowledge -->|Verified Facts| Deliberation
         
-        Deliberation -->|TMR + Facts| Middleware
+        Deliberation -->|Consolidated TMR + Facts| Middleware
         
-        Middleware -->|action_render_response| ResponseGen[Response Generation]
-        ResponseGen -->|Prompt| LLM[Google GenAI Gemini]
+        Middleware -->|produce_final_response| ResponseGen[Action Rendering]
+        ResponseGen -->|Prompt with Verified Facts| LLM[Google GenAI Gemini]
         LLM -->|Natural Language| ResponseGen
         ResponseGen -->|Final Text| Middleware
+    end
+    
+    subgraph "Triple-Threat Ingestion Pipeline (Tools)"
+        OSM[OpenStreetMap: Physicality] -->|ingest_osm.py| RawData[Raw Nodes]
+        RawData -->|ingest_enrich.py| LLM_Enrich[LLM: Geo-Hierarchy & Cultural Insight]
+        LLM_Enrich -->|merge_kg.py| KGData
     end
     
     Middleware -->|Response Text| Main
@@ -27,6 +38,6 @@ graph TD
     classDef core fill:#f9f,stroke:#333,stroke-width:2px;
     class Middleware,Main,Perception,Deliberation,ResponseGen,Knowledge core;
     classDef data fill:#dfd,stroke:#333,stroke-width:2px;
-    class KGData data;
+    class KGData,Memory,Ontology data;
     classDef external fill:#ddf,stroke:#333,stroke-width:2px;
-    class User,TelegramAPI,LLM external;
+    class User,TelegramAPI,LLM,OSM external;

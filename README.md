@@ -1,20 +1,32 @@
-# Telegram -> Gemini Cloud Run webhook
+# Zero-Hallucination Tourism Concierge
 
-Files:
-- `main.py` - Flask app handling Telegram webhooks and calling Gemini API
-- `Dockerfile`, `.dockerignore`, `requirements.txt`
+A stateful, ontology-driven Telegram bot deployed on Google Cloud Run. It uses a formal cognitive architecture to provide verified tourism information for Singapore, ensuring zero-hallucination by grounding LLM responses in a Faceted Knowledge Graph.
 
+## 🧠 Cognitive Architecture
+![AI Architecture](./architecture.png)
+
+The agent follows a multi-stage stateful pipeline:
+1.  **Perception**: Extracts a Text Meaning Representation (TMR) including intent, ontology classes, and entities.
+2.  **Memory (Situation Model)**: Persists and accumulates user state across turns (keyed by `chat_id`).
+3.  **Symbolic Deliberation**: Performs ontology-driven queries against the Knowledge Graph.
+4.  **Action Rendering**: Uses Gemini to translate verified facts into fluent, professional natural language.
+
+## 🛠 Triple-Threat Ingestion Pipeline
+The Knowledge Graph is populated via a specialized pipeline:
+- **Physicality (OSM)**: Real-time node fetching from OpenStreetMap.
+- **Geo-Hierarchy (LLM/OneMap)**: Automated resolution of raw coordinates into official Planning Areas.
+- **Cultural Insight (LLM)**: Distillation of historical and cultural context for every establishment.
+
+## 🚀 Setup & Deployment
 Environment variables:
 - `TELEGRAM_BOT_TOKEN` (required) - your Telegram bot token
-- `GOOGLE_API_KEY` - Gemini/Generative Language API key
-- `GEMINI_ENDPOINT` (optional) - override model endpoint URL
+- `GOOGLE_API_KEY` - Gemini API key
+- `USE_TMR` (optional) - set to `true` for LLM-based perception
 
-Build and run locally (optional):
-
+Build and run locally:
 ```bash
-cd cloudrun-telegram-gemini
-docker build -t telegram-gemini:latest .
-docker run -e TELEGRAM_BOT_TOKEN=your_token -e GOOGLE_API_KEY=your_key -p 8080:8080 telegram-gemini:latest
+docker build -t tourism-concierge .
+docker run -p 8080:8080 --env-file .env tourism-concierge
 ```
 
 Deploy to Google Cloud Run (example):
