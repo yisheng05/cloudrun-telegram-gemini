@@ -2,26 +2,28 @@ graph TD
     User([User]) -->|Telegram Message| TelegramAPI[Telegram API]
     TelegramAPI -->|Webhook| Main[main.py: Flask App]
     
-    subgraph "Application Core (Stateful & Self-Learning)"
-        Main -->|handle_request chat_id| Middleware[middleware.py: Stateful Logic Hub]
+    subgraph "Application Core (Async & Stateful)"
+        Main -->|process_webhook_async| AsyncThread[Background Thread]
+        
+        AsyncThread -->|handle_request| Middleware[middleware.py: Stateful Logic Hub]
         
         Middleware <-->|Load/Update Session| Memory[(memory.py: Situation Model)]
         
-        Middleware -->|perception_simulate| Perception[Perception: Intent/Entities/Class]
-        Perception -->|TMR JSON| Middleware
-        
-        Middleware -->|deliberation_query_kg| Deliberation[Deliberation: Logic Engine]
-        Deliberation -->|query_by_ontology| Knowledge[knowledge.py: KG Interface]
-        
-        Knowledge -->|read| KGData[(data/knowledge_graph.json)]
-        Knowledge -->|Verified Facts| Deliberation
-        
-        %% Dynamic Ingestion Loop
-        Deliberation -->|Cache Miss: Trigger| DynIngest[tools/dynamic_ingest.py]
-        DynIngest -->|Triple-Threat Execution| IngestPipeline
-        KGData -.->|New Nodes Merged| Knowledge
-        
-        Deliberation -->|Consolidated TMR + Facts| Middleware
+        subgraph "Reasoning Pipeline"
+            Middleware -->|perception_simulate| Perception[Perception: Dialogue Act/Goal/Constraints]
+            Perception -->|Constraint-based TMR| Middleware
+            
+            Middleware -->|deliberation_query_kg| Deliberation[Deliberation: Symbolic Engine]
+            Deliberation -->|Apply Negative Constraints| Knowledge[knowledge.py: KG Interface]
+            
+            %% Dynamic Ingestion Loop
+            Deliberation -->|Cache Miss: Trigger| DynIngest[tools/dynamic_ingest.py]
+            DynIngest -->|Triple-Threat Execution| IngestPipeline
+            KGData -.->|New Nodes Merged| Knowledge
+            
+            Knowledge -->|read| KGData[(data/knowledge_graph.json)]
+            Knowledge -->|Verified Facts| Deliberation
+        end
         
         Middleware -->|produce_final_response| ResponseGen[Action Rendering]
         ResponseGen -->|Prompt with Verified Facts| LLM[Google GenAI Gemini]
@@ -38,8 +40,7 @@ graph TD
         LLM_Enrich -->|merge_kg.py| KGData
     end
     
-    Middleware -->|Response Text| Main
-    Main -->|HTTP 200| TelegramAPI
+    Middleware -->|Async Response| TelegramAPI
     TelegramAPI -->|Message| User
     
     classDef core fill:#f9f,stroke:#333,stroke-width:2px;

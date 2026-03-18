@@ -24,21 +24,26 @@ DISTRICT_COORDS = {
     "Ang Mo Kio": (1.3691, 103.8454),
     "Bedok": (1.3236, 103.9273),
     "Bugis": (1.3007, 103.8560),
+    "Marina Bay": (1.2823, 103.8585),
+    "Orchard": (1.3048, 103.8318),
+    "Sentosa": (1.2494, 103.8303),
 }
 
-def fetch_osm_by_radius(lat: float, lon: float, radius: int = 500, limit: int = 10):
+def fetch_osm_by_radius(lat: float, lon: float, radius: int = 800, limit: int = 10):
     """Fallback search using coordinates and radius."""
     url = "https://overpass-api.de/api/interpreter"
     query = f"""
-    [out:json][timeout:25];
+    [out:json][timeout:30];
     (
       node["amenity"~"restaurant|cafe"](around:{radius},{lat},{lon});
+      node["tourism"~"attraction|museum|theme_park"](around:{radius},{lat},{lon});
       way["amenity"~"restaurant|cafe"](around:{radius},{lat},{lon});
+      way["tourism"~"attraction|museum|theme_park"](around:{radius},{lat},{lon});
     );
     out center {limit};
     """
     try:
-        resp = requests.post(url, data={'data': query})
+        resp = requests.post(url, data={'data': query}, timeout=45)
         resp.raise_for_status()
         return resp.json().get("elements", [])
     except Exception as e:
@@ -53,14 +58,17 @@ def run_dynamic_ingestion(location: str, target_class: str = "Restaurant") -> in
     logging.info(f"--- Triggering Dynamic Ingestion for: {location} ({target_class}) ---")
     
     # 1. Physicality (OSM)
-    search_area = f"{location}, Singapore" if "Singapore" not in location else location
-    raw_osm = fetch_osm_tourism_data(area_name=search_area, limit=10)
-    
-    # Fallback to radius search if area name fails
-    if not raw_osm and location in DISTRICT_COORDS:
+    raw_osm = []
+    # Check if it's a known district first for faster radius search
+    if location in DISTRICT_COORDS:
         lat, lon = DISTRICT_COORDS[location]
-        logging.info(f"Area search failed. Retrying with 1000m radius around {lat},{lon}")
-        raw_osm = fetch_osm_by_radius(lat, lon, radius=1000, limit=10)
+        logging.info(f"Known district {location}. Using 800m radius search.")
+        raw_osm = fetch_osm_by_radius(lat, lon, radius=800, limit=10)
+    
+    # If not known or radius failed, try area name with a strict timeout
+    if not raw_osm:
+        search_area = f"{location}, Singapore" if "Singapore" not in location else location
+        raw_osm = fetch_osm_tourism_data(area_name=search_area, limit=10, retries=1)
 
     if not raw_osm:
         logging.warning(f"No real-time data found in OSM for {location}")
@@ -70,10 +78,10 @@ def run_dynamic_ingestion(location: str, target_class: str = "Restaurant") -> in
     kg_nodes = map_osm_to_kg(raw_osm)
     
     # 3. Enrichment (OneMap + LLM Cultural Context)
-    # We only enrich the top 3 to keep response times reasonable for a chat session
+    # We only enrich the top 3 to keep response times reasonable
     enriched = enrich_nodes(kg_nodes[:3])
     
-    # Update locatedIn to the specific district if we used coordinates
+    # Ensure district is set correctly if we used coordinate fallback
     for n in enriched:
         if n["properties"].get("locatedIn") == "Singapore":
              n["properties"]["locatedIn"] = location
@@ -104,7 +112,6 @@ def run_dynamic_ingestion(location: str, target_class: str = "Restaurant") -> in
             os.remove(temp_file)
 
 if __name__ == "__main__":
-    # Test run
     logging.basicConfig(level=logging.INFO)
-    added = run_dynamic_ingestion("Tiong Bahru", "Restaurant")
+    added = run_dynamic_ingestion("Bugis", "Attraction")
     print(f"Dynamic ingestion added {added} nodes.")

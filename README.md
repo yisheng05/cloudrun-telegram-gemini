@@ -5,19 +5,20 @@ A stateful, self-learning, ontology-driven Telegram bot deployed on Google Cloud
 ## 🧠 Cognitive Architecture
 ![AI Architecture](./architecture.png)
 
-The agent follows a multi-stage stateful pipeline:
-1.  **Perception**: Extracts a Text Meaning Representation (TMR) including intent, ontology classes, and entities.
-2.  **Memory (Situation Model)**: Persists and accumulates user state across turns (keyed by `chat_id`).
-3.  **Symbolic Deliberation**: Performs ontology-driven queries against the Knowledge Graph.
-4.  **Dynamic Hydro-Fill**: If the KG lacks information for a requested area, the bot automatically triggers the ingestion pipeline to fetch real-time data.
-5.  **Action Rendering**: Uses Gemini to translate verified facts into fluent, professional natural language.
+The agent follows a multi-stage **asynchronous** pipeline:
+1.  **Async Webhook**: Immediately acknowledges Telegram messages and hands off processing to a background thread to prevent timeouts.
+2.  **Perception**: Extracts a rich TMR including **Dialogue Acts** (e.g., Request, Correction) and **Negative Constraints** (e.g., "NOT in Orchard").
+3.  **Memory (Situation Model)**: Persists and accumulates user state across turns, allowing for intelligent class transitions and entity persistence.
+4.  **Symbolic Deliberation**: Performs ontology-driven queries while respecting complex constraints (Must/Not).
+5.  **Dynamic Hydro-Fill**: Automatically triggers the ingestion pipeline on KG cache misses to fetch real-time data from OSM/OneMap.
+6.  **Action Rendering**: Uses Gemini to translate verified facts into polished natural language.
 
 ## 🛠 Triple-Threat Ingestion Pipeline
-The Knowledge Graph is populated and updated via a specialized pipeline:
-- **Physicality (OSM)**: Real-time node fetching from OpenStreetMap (`ingest_osm.py`). Supports area-name and coordinate-radius fallbacks.
-- **Geo-Hierarchy (OneMap API)**: Official resolution of raw coordinates into Planning Areas via `onemap_client.py`.
-- **Enrichment & Fallback (LLM)**: Distillation of cultural context and fallback reasoning if API tokens expire.
-- **Merge Engine**: Safe integration of new nodes into the master graph (`merge_kg.py`).
+The Knowledge Graph is updated via a specialized pipeline:
+- **Physicality (OSM)**: Real-time node fetching via area name or coordinate-based radius fallback.
+- **Geo-Hierarchy (OneMap API)**: Official resolution of coordinates into Singapore Planning Areas.
+- **Enrichment (LLM)**: Distillation of cultural/historical context for every node.
+- **Merge Engine**: Safe integration of new nodes into the master `knowledge_graph.json`.
 
 ## 🚀 Setup & Deployment
 Environment variables:
