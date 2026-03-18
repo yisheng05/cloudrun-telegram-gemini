@@ -46,6 +46,11 @@ SCRIPT_REQUIREMENTS = {
         "required": ["planning_intent"], # Generic, usually handled by LLM if complex
         "optional": ["location", "duration", "preferences"],
         "critical_message": "I can help plan your day! What are your interests or preferred location?"
+    },
+    "query": {
+        "required": [],
+        "optional": ["locatedIn", "servesCuisine", "price_range"],
+        "critical_message": "What are you looking for?"
     }
 }
 
@@ -106,11 +111,11 @@ def check_actionability(intent: str, entities: Dict[str, Any]) -> Tuple[bool, Op
 def intent_to_script_name(intent: str) -> str:
     """Map generic intents to specific scripts."""
     mapping = {
-        "inform": "dining",
+        "inform": "query",
         "booking": "booking",
         "event": "event",
         "activity": "activity",
-        "query": "dining",
+        "query": "query",
         "shopping": "shopping",
         "planning": "planning",
     }
@@ -180,7 +185,7 @@ def perception_simulate(text: str) -> Dict[str, Any]:
     
     # Location detection
     found_location = False
-    for location in ["marina bay", "marina", "chinatown", "clarke quay", "bras basah", "orchard", "sentosa", "harbourfront", "central", "kazakhstan", "mercury", "marine parade", "pasir ris", "mandai"]:
+    for location in ["marina bay", "marina", "chinatown", "clarke quay", "bras basah", "orchard", "sentosa", "harbourfront", "central", "kazakhstan", "mercury", "marine parade", "pasir ris", "mandai", "river valley", "singapore river", "serangoon", "rochor"]:
         if location in text_l:
             found_location = True
             if location in ["kazakhstan", "mercury"]:
@@ -195,6 +200,10 @@ def perception_simulate(text: str) -> Dict[str, Any]:
     if any(x in text_l for x in ["restaurant", "food", "eat", "dinner", "lunch", "breakfast", "cafe", "dining"]):
         tmr["class"] = "Restaurant"
         tmr["intent"] = "inform"
+    elif any(x in text_l for x in ["museum", "art gallery", "exhibition"]):
+        tmr["class"] = "Attraction"
+        tmr["intent"] = "inform"
+        tmr["entities"]["attraction_type"] = "Museum"
     elif any(x in text_l for x in ["attraction", "place", "see", "visit", "tourist"]):
         tmr["class"] = "Attraction"
         tmr["intent"] = "inform"
@@ -400,15 +409,24 @@ def deliberation_query_kg(tmr: Dict[str, Any]) -> Dict[str, Any]:
     required_facets = []
     
     # Map intent/entities to facets and classes
-    if intent == "inform" or target_class == "Restaurant":
-        target_class = "Restaurant"
-        required_facets = ["TourismService"]
-        if "servesCuisine" in entities:
-            filters["servesCuisine"] = entities["servesCuisine"]
-        if "childrensMenu" in entities:
-            filters["childrensMenu"] = entities["childrensMenu"]
-            required_facets.append("ActivityFeature")
+    if target_class == "Restaurant" or intent == "inform":
+        # Default to Restaurant if intent is inform and no class specified
+        if not target_class:
+            target_class = "Restaurant"
+        
+        if target_class == "Restaurant":
+            required_facets = ["TourismService"]
+            if "servesCuisine" in entities:
+                filters["servesCuisine"] = entities["servesCuisine"]
+            if "childrensMenu" in entities:
+                filters["childrensMenu"] = entities["childrensMenu"]
+                required_facets.append("ActivityFeature")
     
+    if target_class == "Attraction":
+        required_facets = ["Place"]
+        if "attraction_type" in entities:
+            filters["attraction_type"] = entities["attraction_type"]
+
     if "locatedIn" in entities:
         filters["locatedIn"] = entities["locatedIn"]
     if "price_range" in entities:

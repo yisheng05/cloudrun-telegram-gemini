@@ -21,17 +21,26 @@ class SituationModel:
         new_class = tmr.get("class")
         new_entities = tmr.get("entities", {})
 
-        # 1. Update Intent (only if it's not 'inform'/generic or if it's a clear shift)
+        # 1. Update Class and Intent Transition
+        # If class changes (e.g. from NaturePark to Attraction/Museum), 
+        # we often want to clear class-specific entities but keep location/accessibility
+        if new_class and new_class != self.target_class:
+            # Clear sticky specific types that might conflict
+            self.entities.pop("activity_type", None)
+            self.entities.pop("nature_feature", None)
+            self.entities.pop("shopping_type", None)
+            self.target_class = new_class
+            self.intent = new_intent or "inform"
+        elif not self.target_class:
+            self.target_class = new_class
+
+        # 2. Update Intent
         if new_intent and new_intent not in ["inform", "query"]:
             self.intent = new_intent
         elif not self.intent:
             self.intent = new_intent
 
-        # 2. Update Class
-        if new_class:
-            self.target_class = new_class
-
-        # 3. Accumulate Entities (don't overwrite unless new value is provided)
+        # 3. Accumulate Entities
         for k, v in new_entities.items():
             if v is not None:
                 self.entities[k] = v

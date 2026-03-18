@@ -512,6 +512,23 @@
         "wheelchairAccessible": true,
         "description": "Located along the Singapore River, Jumbo Seafood at Riverside Point echoes the area's history as a bustling trading hub that has now transformed into a vibrant dining and entertainment district."
       }
+    },
+    {
+      "id": "attraction_museum_1",
+      "class": "Attraction",
+      "name": "National Museum of Singapore",
+      "facets": [
+        "Place",
+        "Building",
+        "Accessibility"
+      ],
+      "properties": {
+        "locatedIn": "Bras Basah",
+        "attraction_type": "Museum",
+        "wheelchairAccessible": true,
+        "openingHours": "10:00-19:00",
+        "description": "The oldest museum in Singapore, tracing its history back to the Raffles Library and Museum."
+      }
     }
   ],
   "aliases": {
