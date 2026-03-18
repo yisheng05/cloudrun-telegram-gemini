@@ -175,13 +175,22 @@ def perception_simulate(text: str) -> Dict[str, Any]:
     # Determine intent - check for chat/general_knowledge FIRST
     if any(x in text_l for x in ["hello", "hi", "hey", "thanks", "thank you", "who are you", "what's your name", "how are you", "good morning", "good night"]):
         tmr["intent"] = "chat"
-        return tmr  # No need to extract more entities for chat
+        return tmr
+    
+    # Check for ontology class: Restaurant
+    if any(x in text_l for x in ["restaurant", "food", "eat", "dinner", "lunch", "breakfast", "cafe", "dining"]):
+        tmr["class"] = "Restaurant"
+        tmr["intent"] = "inform"
+
+    # Children's menu detection
+    if "children" in text_l or "kids" in text_l or "child" in text_l:
+        tmr["entities"]["childrensMenu"] = True
     
     # Check for general knowledge questions
     if any(x in text_l for x in ["what", "when", "where", "why", "how", "who", "which", "tell me about", "explain", "won the", "is", "are"]) and \
-       not any(x in text_l for x in ["restaurant", "food", "eat", "dinner", "lunch", "breakfast", "book", "reserve", "hotel"]):
+       not tmr.get("class") and not any(x in text_l for x in ["book", "reserve", "hotel"]):
         # Looks like a general knowledge question
-        if not any(x in text_l for x in ["restaurant", "place", "event", "activity", "show", "concert", "shopping", "mall", "market", "shop", "park", "nature", "garden", "hike"]):
+        if not any(x in text_l for x in ["place", "event", "activity", "show", "concert", "shopping", "mall", "market", "shop", "park", "nature", "garden", "hike"]):
             tmr["intent"] = "general_knowledge"
             return tmr
     
@@ -190,20 +199,19 @@ def perception_simulate(text: str) -> Dict[str, Any]:
         tmr["intent"] = "booking"
         if "hotel" in text_l or "room" in text_l or "stay" in text_l or "mbs" in text_l:
             tmr["entities"]["booking_type"] = "Hotel"
-            tmr["entities"]["accommodation_type"] = "Hotel" # Keep for backward compat
+            tmr["class"] = "Hotel"
         elif "hostel" in text_l:
              tmr["entities"]["booking_type"] = "Hostel"
         elif "flight" in text_l or "fly" in text_l or "ticket" in text_l:
             tmr["entities"]["booking_type"] = "Flight"
         elif "restaurant" in text_l or "table" in text_l or "dinner" in text_l:
             tmr["entities"]["booking_type"] = "Restaurant"
+            tmr["class"] = "Restaurant"
 
     elif "event" in text_l or "concert" in text_l or "show" in text_l or "exhibition" in text_l:
         tmr["intent"] = "event"
     elif "activity" in text_l or "tour" in text_l or "visit" in text_l or "see" in text_l:
         tmr["intent"] = "activity"
-    elif "eat" in text_l or "dinner" in text_l or "lunch" in text_l or "breakfast" in text_l or "restaurant" in text_l or "food" in text_l or "cafe" in text_l:
-        tmr["intent"] = "inform"  # dining query
     
     # Extract entities
     if "italian" in text_l or "pasta" in text_l:
@@ -217,15 +225,23 @@ def perception_simulate(text: str) -> Dict[str, Any]:
         tmr["entities"]["servesCuisine_or_locatedIn"] = "French"
     
     # Location detection
-    for location in ["marina bay", "marina", "chinatown", "clarke quay", "bras basah", "orchard", "sentosa", "harbourfront", "central", "kazakhstan", "mercury"]:
+    for location in ["marina bay", "marina", "chinatown", "clarke quay", "bras basah", "orchard", "sentosa", "harbourfront", "central", "kazakhstan", "mercury", "marine parade", "pasir ris"]:
         if location in text_l:
             if location in ["kazakhstan", "mercury"]:
                 tmr["entities"]["destination"] = location.title()
-                tmr["entities"]["locatedIn"] = location.title() # Map to locatedIn for generic logic
+                tmr["entities"]["locatedIn"] = location.title() 
             else:
                 tmr["entities"]["locatedIn"] = location.title()
                 tmr["entities"]["servesCuisine_or_locatedIn"] = location.title()
             break
+
+    # Establishment name detection (Specific for our new nodes)
+    if "jumbo" in text_l:
+        tmr["entities"]["name"] = "Jumbo Seafood"
+        tmr["class"] = "Restaurant"
+    if "suki-ya" in text_l or "sukiya" in text_l:
+        tmr["entities"]["name"] = "Suki-ya"
+        tmr["class"] = "Restaurant"
     
     # Time detection (HH:MM or meal keywords)
     m = re.search(r"\b([01]?\d|2[0-3]):[0-5]\d\b", text_l)
@@ -271,45 +287,37 @@ def perception_simulate(text: str) -> Dict[str, Any]:
     # Shopping detection
     if "shop" in text_l or "mall" in text_l or "buy" in text_l or "market" in text_l:
         tmr["intent"] = "shopping"
+        tmr["class"] = "ShoppingMall"
         if "mall" in text_l:
             tmr["entities"]["shopping_type"] = "Mall"
         elif "market" in text_l:
             tmr["entities"]["shopping_type"] = "Market"
         else:
-             tmr["entities"]["shopping_type"] = "General" # Default to satisfy requirement
+             tmr["entities"]["shopping_type"] = "General" 
 
     # Nature/Park detection
     if "park" in text_l or "nature" in text_l or "garden" in text_l or "hike" in text_l:
         tmr["intent"] = "activity"
+        tmr["class"] = "NaturePark"
         tmr["entities"]["activity_type"] = "Nature"
         tmr["entities"]["nature_feature"] = True
 
-    # Planning detection
-    if "plan" in text_l or "itinerary" in text_l or "recommendation" in text_l:
-        # If it's a broad request, mark as planning
-        if not tmr.get("entities"):
-             tmr["intent"] = "planning"
-             tmr["entities"]["planning_intent"] = "day_trip"
-    
     return tmr
 
 
 def build_tmr_prompt(user_text: str) -> str:
     examples = (
-        "User: I want cheap pasta near Marina Bay\nTMR: {\"intent\": \"inform\", \"entities\": {\"servesCuisine\": \"Italian\", \"locatedIn\": \"Marina Bay\"}}\n",
-        "User: Can you find a hotel?\nTMR: {\"intent\": \"booking\", \"entities\": {\"booking_type\": \"Hotel\"}}\n",
-        "User: I want to fly to Paris\nTMR: {\"intent\": \"booking\", \"entities\": {\"booking_type\": \"Flight\", \"destination\": \"Paris\"}}\n",
-        "User: Book a table for dinner\nTMR: {\"intent\": \"booking\", \"entities\": {\"booking_type\": \"Restaurant\", \"mealType\": \"dinner\"}}\n",
+        "User: I want cheap Italian food for kids near Marina Bay\nTMR: {\"intent\": \"inform\", \"class\": \"Restaurant\", \"entities\": {\"servesCuisine\": \"Italian\", \"locatedIn\": \"Marina Bay\", \"price_range\": \"Low\", \"childrensMenu\": true}}\n",
+        "User: Find me a wheelchair accessible hotel\nTMR: {\"intent\": \"booking\", \"class\": \"Hotel\", \"entities\": {\"booking_type\": \"Hotel\", \"wheelchairAccessible\": true}}\n",
         "User: Who are you?\nTMR: {\"intent\": \"chat\", \"entities\": {}}\n",
-        "User: What is the weather like in Singapore?\nTMR: {\"intent\": \"general_knowledge\", \"entities\": {}}\n",
     )
     prompt = (
         "Extract a concise Text Meaning Representation (TMR) from the user's message.\n"
-        "Output only a single JSON object with keys: intent (string), entities (object).\n"
-        "Intents: 'inform' (KG search), 'booking', 'chat' (greetings/persona), 'general_knowledge' (facts outside KG), 'shopping', 'activity', 'planning'.\n"
-        "Entities keys should be simple canonical names like 'servesCuisine', 'locatedIn', 'booking_type', 'destination', 'origin', 'date', 'n_people', 'shopping_type'.\n"
-        "For 'booking' intent, 'booking_type' MUST be one of: 'Hotel', 'Flight', 'Restaurant'.\n"
-        "Respond with valid JSON only (no explanatory text).\n\n"
+        "Output only a single JSON object with keys: intent (string), class (string, optional), entities (object).\n"
+        "Intents: 'inform', 'booking', 'chat', 'general_knowledge', 'shopping', 'activity'.\n"
+        "Classes: 'Restaurant', 'Hotel', 'NaturePark', 'ShoppingMall'.\n"
+        "Entities keys: 'servesCuisine', 'locatedIn', 'price_range', 'childrensMenu', 'wheelchairAccessible', 'booking_type', 'destination'.\n"
+        "Respond with valid JSON only.\n\n"
         f"{''.join(examples)}"
         f"User: {user_text}\nTMR:"
     )
@@ -392,147 +400,75 @@ def request_tmr_from_model(call_gemini_fn: Any, user_text: str, max_retries: int
 def deliberation_query_kg(tmr: Dict[str, Any]) -> Dict[str, Any]:
     intent = tmr.get("intent", "inform")
     entities = tmr.get("entities", {})
+    target_class = tmr.get("class") # NEW: Specific ontology class like Restaurant
 
     # Phase 1: Dual-Path check - does this need KG at all?
     if intent in ["chat", "general_knowledge"]:
         return {"verified": [], "filters": {}, "filtered_out": [], "tmr": tmr, "mode": "LLM_ONLY"}
 
     # Phase 2: DELIBERATION - CHECK ACTIONABILITY
-    # Before querying the graph, validate we have sufficient critical data
     is_actionable, clarification = check_actionability(intent, entities)
     
     if not is_actionable:
-        # Not enough information - trigger Mixed-Initiative Learning
-        logging.info(f"Actionability check failed for intent '{intent}'. Requesting clarification.")
         metrics.inc('actionability_failures')
         return {
-            "verified": [],
-            "filters": {},
-            "filtered_out": [],
-            "tmr": tmr,
-            "mode": "CLARIFICATION_NEEDED",
-            "clarification_message": clarification
+            "verified": [], "filters": {}, "filtered_out": [], "tmr": tmr,
+            "mode": "CLARIFICATION_NEEDED", "clarification_message": clarification
         }
     
-    # Phase 3: Build facet-aware filters for KG query
+    # Phase 3: Build ontology-driven query parameters
     filters = {}
-    required_facets = ["Place"]  # Default: queries are place-based
+    required_facets = []
     
-    if "servesCuisine" in entities:
-        filters["servesCuisine"] = entities["servesCuisine"]
+    # Map intent/entities to facets and classes
+    if intent == "inform" or target_class == "Restaurant":
+        target_class = "Restaurant"
+        required_facets = ["TourismService"]
+        if "servesCuisine" in entities:
+            filters["servesCuisine"] = entities["servesCuisine"]
+        if "childrensMenu" in entities:
+            filters["childrensMenu"] = entities["childrensMenu"]
+            required_facets.append("ActivityFeature")
+    
     if "locatedIn" in entities:
         filters["locatedIn"] = entities["locatedIn"]
     if "price_range" in entities:
         filters["hasPriceRange"] = entities["price_range"]
-    
-    # Determine facets based on intent and entities
-    if intent == "inform":
-        # Dining query: need Place (restaurant) and Service (meal service)
-        required_facets = ["Place", "Service"]
-        if "mealType" in entities:
-            filters["mealType"] = entities["mealType"]
-        if "accessibility" in entities:
-            required_facets.append("Accessibility")
-    elif intent == "event":
-        # Event query: need Event_Host and Place facets
-        required_facets = ["Event_Host", "Place"]
-        if "event_type" in entities:
-            filters["eventType"] = entities["event_type"]
-    elif intent == "activity":
-        required_facets = ["Place", "Attraction"] # broadened from specific building
-        if "nature_feature" in entities:
-             required_facets.append("NaturalFeature")
-    elif intent == "shopping":
-        required_facets = ["Place", "Shopping"]
-    elif intent == "booking":
-        booking_type = entities.get("booking_type")
-        if booking_type == "Flight":
-            required_facets = ["Destination"] # Need to find the destination
-            if "destination" in entities:
-                 filters["name"] = entities["destination"] # Simple name match for now
-        elif booking_type == "Restaurant":
-            required_facets = ["Place", "Service"]
-        else:
-            required_facets = ["Place", "Accommodation"]
-    elif intent == "planning":
-        # Planning queries might need mixed facets, defaulting to broad Place search if no specific entities
-        # This is a bit simplistic; ideally we'd plan a sequence.
-        # For now, let's just find interesting places.
-        required_facets = ["Place", "Attraction"]
+    if "accessibility" in entities or "wheelchairAccessible" in entities:
+        required_facets.append("Accessibility")
+        if "wheelchairAccessible" in entities:
+            filters["wheelchairAccessible"] = entities["wheelchairAccessible"]
 
-    
-    # Perform facet-aware query
-    if filters:
-        try:
-            candidates = knowledge.find_by_facet_and_filters(required_facets, filters)
-        except Exception as e:
-            logging.warning(f"Facet-aware query failed: {e}. Falling back to simple filters.")
-            candidates = knowledge.find_by_filters(filters)
-    else:
-        # If no filters but intent requires KG, try to get all nodes with required facets
-        candidates = knowledge.query_by_facets(required_facets) if required_facets else []
+    # Use the new ontology-driven query engine
+    try:
+        candidates = knowledge.query_by_ontology(
+            target_class=target_class,
+            facets=required_facets,
+            properties=filters
+        )
+    except Exception as e:
+        logging.error(f"Ontology query failed: {e}")
+        candidates = knowledge.find_by_filters(filters)
 
-    # Phase 4: Validation layer - filter candidates by time and accessibility constraints
+    # Phase 4: Validation layer - filter candidates by time constraints
     desired_time = entities.get("time") or entities.get("when")
-    accessibility_required = entities.get("wheelchairAccessible")
-
-    def parse_time_str(t: str) -> Optional[tuple]:
-        try:
-            parts = t.split(":")
-            return (int(parts[0]), int(parts[1]))
-        except Exception:
-            return None
-
-    def is_open_at(opening_hours: str, at_time: Optional[str]) -> bool:
-        # opening_hours assumed format "HH:MM-HH:MM" (single interval)
-        if not at_time:
-            return True
-        if not opening_hours:
-            return True
-        try:
-            interval = opening_hours.split("-")
-            start = parse_time_str(interval[0])
-            end = parse_time_str(interval[1])
-            at = parse_time_str(at_time)
-            if not (start and end and at):
-                return True
-            start_minutes = start[0] * 60 + start[1]
-            end_minutes = end[0] * 60 + end[1]
-            at_minutes = at[0] * 60 + at[1]
-            # simple interval (no overnight handling)
-            return start_minutes <= at_minutes <= end_minutes
-        except Exception:
-            return True
-
     verified = []
     filtered_out = []
     for c in candidates:
-        props = c.get("properties", {})
-        # accessibility check
-        if accessibility_required is not None:
-            if bool(props.get("wheelchairAccessible")) != bool(accessibility_required):
-                filtered_out.append({"node": c, "reason": "accessibility_mismatch"})
-                continue
-
-        # opening hours check
+        # Opening hours check
         if desired_time:
-            oh = props.get("openingHours")
+            oh = c.get("properties", {}).get("openingHours")
             if not is_open_at(oh, desired_time):
                 filtered_out.append({"node": c, "reason": "closed_at_requested_time"})
                 continue
-
         verified.append(c)
 
     # Phase 5: Determine response mode
     mode = "KG_DRIVEN" if verified else "LLM_FALLBACK"
     
     return {
-        "verified": verified,
-        "filters": filters,
-        "filtered_out": filtered_out,
-        "tmr": tmr,
-        "mode": mode,
-        "required_facets": required_facets
+        "verified": verified, "filters": filters, "filtered_out": filtered_out,
+        "tmr": tmr, "mode": mode, "required_facets": required_facets
     }
 
 
@@ -552,20 +488,7 @@ def action_render_response(verified: Dict[str, Any], original_text: str) -> str:
     tmr = verified.get("tmr", {})
     intent = tmr.get("intent")
     entities = tmr.get("entities", {})
-    required_facets = verified.get("required_facets", [])
-
-    # Additional nuanced checks for multi-facet scenarios
-    if intent == "inform" or intent == "query":
-        items = verified.get("verified", [])
-        if not items:
-            missing = []
-            if not entities.get("servesCuisine") and not entities.get("locatedIn"):
-                missing.append("cuisine type or location")
-            if "Accessibility" in required_facets and not entities.get("accessibility"):
-                missing.append("accessibility requirements")
-            
-            if missing:
-                return f"I'd love to help you find a place to eat! Could you please specify the {', or '.join(missing)}?"
+    target_class = tmr.get("class")
 
     items = verified.get("verified", [])
     if not items:
@@ -573,34 +496,24 @@ def action_render_response(verified: Dict[str, Any], original_text: str) -> str:
             btype = entities.get("booking_type", "accommodation")
             dest = entities.get("destination", "that location")
             return f"I couldn't find any available {btype.lower()}s for {dest}. I may not have that information in my database."
-        return "I'm looking into that for you..."
+        return f"I'm sorry, I couldn't find any {target_class or 'places'} matching your specific criteria in my database."
 
-    lines = ["Here are some options I found for you:"]
+    lines = ["Here are some options from my Tourism Knowledge Graph:"]
     for n in items:
         name = n.get("name")
         props = n.get("properties", {})
         loc = props.get("locatedIn")
-        price = props.get("hasPriceRange")
         cuisine = props.get("servesCuisine")
         
-        # Build a rich description leveraging multiple facets
         desc_parts = []
         if cuisine:
             desc_parts.append(cuisine)
         if loc:
             desc_parts.append(f"in {loc}")
-        if price:
-            desc_parts.append(f"({price} price)")
-        
-        # Add facet-specific features
-        if "Accessibility" in n.get("facets", []):
-            if props.get("wheelchairAccessible"):
-                desc_parts.append("✓ wheelchair accessible")
-        
-        if "Event_Host" in n.get("facets", []):
-            events = props.get("hostingEvents", [])
-            if events:
-                desc_parts.append(f"hosts {', '.join(events)}")
+        if props.get("childrensMenu"):
+            desc_parts.append("✓ children's menu")
+        if props.get("wheelchairAccessible"):
+            desc_parts.append("✓ wheelchair accessible")
         
         description = ", ".join(desc_parts)
         lines.append(f"- {name}: {description}")
@@ -637,53 +550,33 @@ def produce_final_response(call_gemini_fn: Any, verified: Dict[str, Any], user_t
             logging.exception("LLM response generation failed")
             return "I'm sorry, I'm having trouble answering that right now."
 
-    # Path B: KG Facts Rendering with Facet Awareness
-    rendered = action_render_response(verified, user_text)
-    if rendered == "USE_MODEL_DIRECTLY":
-        # Fallback in case logic reaches here unexpectedly
-        return "I'm sorry, I'm having trouble answering that right now."
-
-    if "Could you please specify" in rendered or not call_gemini_fn:
-        return rendered
-
+    # Path B: KG Facts Rendering
     facts = verified.get("verified", [])
-    if not facts:
-        return rendered
-
     facts_lines = []
     for n in facts:
         props = n.get("properties", {})
-        facets = n.get("facets", [])
         
-        # Build rich fact representation using facets
-        facts_parts = [n.get('name')]
+        # Build rich fact representation using ontology awareness
+        facts_parts = [f"Name: {n.get('name')}"]
+        facts_parts.append(f"Class: {n.get('class')}")
         
-        if "Service" in facets:
-            facts_parts.append(f"cuisine: {props.get('servesCuisine','?')}")
+        if props.get('servesCuisine'):
+            facts_parts.append(f"Cuisine: {props.get('servesCuisine')}")
+        if props.get('locatedIn'):
+            facts_parts.append(f"Location: {props.get('locatedIn')}")
+        if props.get('childrensMenu'):
+            facts_parts.append("Features: Children's Menu")
+        if props.get('wheelchairAccessible'):
+            facts_parts.append("Accessibility: Wheelchair Accessible")
         
-        if "Place" in facets or "Building" in facets:
-            facts_parts.append(f"location: {props.get('locatedIn','?')}")
-            facts_parts.append(f"hours: {props.get('openingHours','?')}")
-        
-        if "Accessibility" in facets:
-            accessible = "Yes" if props.get("wheelchairAccessible") else "No"
-            facts_parts.append(f"wheelchair-accessible: {accessible}")
-        
-        if "Event_Host" in facets:
-            events = props.get("hostingEvents", [])
-            if events:
-                facts_parts.append(f"hosts: {', '.join(events)}")
-        
-        facts_parts.append(f"price: {props.get('hasPriceRange','?')}")
         facts_lines.append(" | ".join(facts_parts))
 
     facts_blob = "\n".join(facts_lines)
     prompt = (
-        f"You are a helpful assistant. The user asked: {user_text}\n\n"
-        "Below are VERIFIED facts from our knowledge base (do not invent new facts). "
-        "Use ONLY these facts to create a concise, useful reply to the user. "
-        "Highlight relevant facets (like accessibility features or hosted events) when they match the user's interests. "
-        "If the answer is not in the facts, say 'I don't have that information in my database'. "
+        f"You are a helpful tourism concierge. The user asked: {user_text}\n\n"
+        "Below are VERIFIED facts from our Tourism Domain Knowledge Graph. "
+        "Use ONLY these facts to create a concise, polished reply. "
+        "Highlight specific features like children's menus or accessibility if requested. "
         "Do NOT use markdown. Keep the reply under 3500 characters.\n\n"
         f"VERIFIED_FACTS:\n{facts_blob}\n\nReply:"
     )
@@ -691,21 +584,14 @@ def produce_final_response(call_gemini_fn: Any, verified: Dict[str, Any], user_t
     try:
         raw = call_gemini_fn(prompt)
         if not raw:
-            raise ValueError("empty response from model")
+            return action_render_response(verified, user_text)
         reply = raw.strip()
     except Exception:
-        logging.exception("Final response generation via model failed; falling back to local renderer")
         metrics.inc('final_response_failures')
-        reply = rendered
+        return action_render_response(verified, user_text)
 
-    # Strip markdown-esque characters just in case
-    reply = reply.replace("**", "").replace("__", "").replace("*", "").replace("_", "")
+    return reply.replace("**", "").replace("*", "")
 
-    # Enforce Telegram-safe length
-    if len(reply) > 3900:
-        reply = reply[:3897] + "..."
-
-    return reply
 
 
 def handle_request(call_gemini_fn: Optional[Any], text: str) -> str:

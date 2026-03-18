@@ -44,7 +44,7 @@ gcloud run deploy telegram-gemini \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN,GEMINI_API_KEY=$GEMINI_API_KEY
+  --set-env-vars TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN,GOOGLE_API_KEY=$GOOGLE_API_KEY
 ```
 
 ## Local Testing Before Deployment
@@ -92,7 +92,7 @@ Ensure these are set before deployment:
 
 ```bash
 export TELEGRAM_BOT_TOKEN=<your_telegram_bot_token>
-export GEMINI_API_KEY=<your_gemini_api_key>
+export GOOGLE_API_KEY=<your_gemini_api_key>
 export PORT=8080  # Default for Cloud Run
 ```
 

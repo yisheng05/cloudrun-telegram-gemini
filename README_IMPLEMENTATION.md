@@ -212,7 +212,7 @@ docker push gcr.io/gen-lang-client-0813141410/telegram-gemini:latest
 # Deploy to Cloud Run
 gcloud run deploy telegram-gemini \
   --image gcr.io/gen-lang-client-0813141410/telegram-gemini:latest \
-  --set-env-vars TELEGRAM_BOT_TOKEN=xxx,GEMINI_API_KEY=xxx
+  --set-env-vars TELEGRAM_BOT_TOKEN=xxx,GOOGLE_API_KEY=xxx
 ```
 
 ### Verification

@@ -53,6 +53,60 @@ def query_by_facets(facets: List[str]) -> List[Dict[str, Any]]:
     return results
 
 
+_ONTOLOGY_FILE = os.path.join(_THIS_DIR, "src", "ontology", "tourism_ontology.json")
+
+def load_ontology() -> Dict[str, Any]:
+    try:
+        with open(_ONTOLOGY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        logging.warning("Ontology file not found or invalid.")
+        return {}
+
+def query_by_ontology(
+    target_class: Optional[str] = None,
+    facets: List[str] = [],
+    properties: Dict[str, Any] = {}
+) -> List[Dict[str, Any]]:
+    """Complex ontology-driven query.
+    
+    Example: 
+    - target_class="Restaurant"
+    - facets=["Accessibility", "FamilyFriendly"]
+    - properties={"childrensMenu": True, "servesCuisine": "Italian"}
+    """
+    kg = load_kg()
+    ontology = load_ontology()
+    results = []
+
+    for node in kg.get("nodes", []):
+        # 1. Class Check
+        if target_class and node.get("class") != target_class:
+            continue
+        
+        # 2. Facet Check
+        node_facets = set(node.get("facets", []))
+        if facets and not all(f in node_facets for f in facets):
+            continue
+        
+        # 3. Property Check
+        node_props = node.get("properties", {})
+        match = True
+        for k, v in properties.items():
+            prop_val = node_props.get(k)
+            if isinstance(prop_val, list):
+                if v not in prop_val:
+                    match = False
+                    break
+            elif prop_val != v:
+                match = False
+                break
+        
+        if match:
+            results.append(node)
+            
+    return results
+
 def find_by_filters(filters: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Find nodes matching all filter criteria."""
     results = []

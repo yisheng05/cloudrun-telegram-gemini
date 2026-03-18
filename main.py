@@ -11,13 +11,13 @@ logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6JW1AG-hWIeC-EO7hxuC0etNHW4Fota3bfEN-cdT5N0zA")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 TELEGRAM_API_URL = "https://api.telegram.org"
 
 # Configure Gemini API via adapter
 import genai_adapter
-genai_adapter.configure(GEMINI_API_KEY)
+genai_adapter.configure(GOOGLE_API_KEY)
 
 # Load minimal knowledge graph at startup
 WORLD_KG = knowledge.load_kg()

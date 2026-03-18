@@ -1,0 +1,38 @@
+{
+  "facets": {
+    "GeographicalObject": {
+      "subfacets": ["District", "NaturalFeature", "Island"],
+      "properties": ["location", "city", "country"]
+    },
+    "AdministrativeDivision": {
+      "subfacets": ["City", "District", "State"],
+      "properties": ["population", "government"]
+    },
+    "TourismService": {
+      "subfacets": ["Dining", "Accommodation", "Transport", "Shopping"],
+      "properties": ["priceRange", "openingHours", "contactInfo"]
+    },
+    "AccessRequirement": {
+      "subfacets": ["Accessibility", "LanguageSupport", "DietaryRequirement"],
+      "properties": ["wheelchairAccessible", "hearingLoop", "halalCertified", "vegetarianOptions"]
+    },
+    "ActivityFeature": {
+      "subfacets": ["FamilyFriendly", "Nightlife", "Cultural", "Sports"],
+      "properties": ["childrensMenu", "minimumAge", "isOutdoors"]
+    }
+  },
+  "classes": {
+    "Restaurant": {
+      "facets": ["TourismService", "AccessRequirement", "ActivityFeature", "GeographicalObject"],
+      "mandatory_properties": ["servesCuisine", "locatedIn"]
+    },
+    "Hotel": {
+      "facets": ["TourismService", "AccessRequirement", "GeographicalObject"],
+      "mandatory_properties": ["accommodationType", "stars"]
+    },
+    "NaturePark": {
+      "facets": ["GeographicalObject", "AccessRequirement", "ActivityFeature"],
+      "mandatory_properties": ["parkType"]
+    }
+  }
+}

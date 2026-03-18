@@ -6,7 +6,7 @@ Files:
 
 Environment variables:
 - `TELEGRAM_BOT_TOKEN` (required) - your Telegram bot token
-- `GEMINI_API_KEY` (optional) - Gemini/Generative Language API key (defaults to provided key)
+- `GOOGLE_API_KEY` - Gemini/Generative Language API key
 - `GEMINI_ENDPOINT` (optional) - override model endpoint URL
 
 Build and run locally (optional):
@@ -14,7 +14,7 @@ Build and run locally (optional):
 ```bash
 cd cloudrun-telegram-gemini
 docker build -t telegram-gemini:latest .
-docker run -e TELEGRAM_BOT_TOKEN=your_token -e GEMINI_API_KEY=your_key -p 8080:8080 telegram-gemini:latest
+docker run -e TELEGRAM_BOT_TOKEN=your_token -e GOOGLE_API_KEY=your_key -p 8080:8080 telegram-gemini:latest
 ```
 
 Deploy to Google Cloud Run (example):
@@ -29,7 +29,7 @@ gcloud run deploy telegram-gemini \
   --region=us-central1 \
   --platform=managed \
   --allow-unauthenticated \
-  --set-env-vars TELEGRAM_BOT_TOKEN=your_token,GEMINI_API_KEY=your_key
+  --set-env-vars TELEGRAM_BOT_TOKEN=your_token,GOOGLE_API_KEY=your_key
 ```
 
 After deployment, set your Telegram bot webhook to the Cloud Run URL (replace URL):

@@ -19,7 +19,8 @@
         "Place",
         "Service",
         "Building",
-        "Accessibility"
+        "Accessibility",
+        "ActivityFeature"
       ],
       "properties": {
         "servesCuisine": "Italian",
@@ -29,6 +30,7 @@
           "dinner"
         ],
         "wheelchairAccessible": true,
+        "childrensMenu": true,
         "locatedIn": "Marina Bay",
         "openingHours": "11:00-22:00",
         "hasParking": true,
@@ -416,6 +418,99 @@
       "properties": {
         "locatedIn": "Central Asia",
         "description": "A transcontinental country located mainly in Central Asia."
+      }
+    },
+    {
+      "id": "osm_368261001",
+      "class": "Restaurant",
+      "name": "Unknown Establishment",
+      "facets": [
+        "Place",
+        "TourismService"
+      ],
+      "properties": {
+        "locatedIn": "Serangoon",
+        "osm_id": 368261001,
+        "lat": 1.3893648,
+        "lon": 103.8862866,
+        "servesCuisine": "Coffee_Shop",
+        "description": "Historically a rural area with agriculture, Serangoon is now a vibrant residential area with connections to the Teochew community who were among the early settlers of the area."
+      }
+    },
+    {
+      "id": "osm_380582666",
+      "class": "Restaurant",
+      "name": "Suki-ya",
+      "facets": [
+        "Place",
+        "TourismService"
+      ],
+      "properties": {
+        "locatedIn": "Orchard",
+        "osm_id": 380582666,
+        "lat": 1.3594895,
+        "lon": 103.8854848,
+        "servesCuisine": "Japanese",
+        "description": "Located in the heart of Orchard Road, Suki-ya benefits from the area's rich history as a former nutmeg orchard turned bustling retail hub and entertainment destination."
+      }
+    },
+    {
+      "id": "osm_393149179",
+      "class": "Restaurant",
+      "name": "Unknown Establishment",
+      "facets": [
+        "Place",
+        "TourismService"
+      ],
+      "properties": {
+        "locatedIn": "Pasir Ris",
+        "osm_id": 393149179,
+        "lat": 1.3314661,
+        "lon": 103.9482377,
+        "servesCuisine": "Coffee_Shop",
+        "description": "Pasir Ris, meaning 'narrow beach' in Malay, was once a popular weekend retreat with kampongs and beachside bungalows before evolving into a residential town."
+      }
+    },
+    {
+      "id": "osm_462263947",
+      "class": "Restaurant",
+      "name": "Jumbo Seafood",
+      "facets": [
+        "AccessRequirement",
+        "Accessibility",
+        "Place",
+        "TourismService"
+      ],
+      "properties": {
+        "locatedIn": "Marine Parade",
+        "osm_id": 462263947,
+        "lat": 1.3051479,
+        "lon": 103.9306772,
+        "servesCuisine": "Seafood;Chinese",
+        "openingHours": "Mo-Fr 17:00-23:45; Sa,Su,Ph 11:30-24:00",
+        "wheelchairAccessible": true,
+        "description": "Jumbo Seafood's East Coast branch, located in Marine Parade, reflects the area's long-standing connection to the sea and its history as a popular recreational waterfront destination for Singaporeans."
+      }
+    },
+    {
+      "id": "osm_462264013",
+      "class": "Restaurant",
+      "name": "Jumbo Seafood",
+      "facets": [
+        "AccessRequirement",
+        "Accessibility",
+        "Place",
+        "TourismService"
+      ],
+      "properties": {
+        "locatedIn": "River Planning Area",
+        "osm_id": 462264013,
+        "lat": 1.2892592,
+        "lon": 103.8482726,
+        "servesCuisine": "Seafood",
+        "openingHours": "Mo-Su 11:30-23:00",
+        "wheelchairAccessible": true,
+        "description": "Clarke Quay, within the River Planning Area, was once a bustling hub of trade and commerce along the Singapore River, vital for the island's development as a port city."
       }
     }
   ],
