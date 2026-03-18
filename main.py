@@ -129,11 +129,10 @@ def webhook():
 
     prompt = f"User: {text}\nAssistant:"
     # Constrain response to fit in a single Telegram message (4096 char limit)
-    constrained_prompt = f"{prompt}\n\n[IMPORTANT: Keep your response under 3500 characters. Do NOT use markdown formatting like **bold** or __italics__. Be concise but complete.]"
-    # Use the middleware pipeline (Perception -> Deliberation -> Action)
-    # middleware will simulate TMR locally unless USE_TMR env var is set
-    reply = middleware.handle_request(call_gemini, text)
-    
+    # constrained_prompt = f"{prompt}\n\n[IMPORTANT: Keep your response under 3500 characters. Do NOT use markdown formatting like **bold** or __italics__. Be concise but complete.]"
+    # Use the middleware pipeline (Perception -> Memory -> Deliberation -> Action)
+    reply = middleware.handle_request(call_gemini, text, chat_id)
+
     # Strip markdown bold and italic markers to reduce message length
     reply = reply.replace("**", "").replace("__", "").replace("*", "").replace("_", "")
     
@@ -162,15 +161,12 @@ def simulate():
     """
     data = request.get_json(silent=True) or {}
     text = data.get('text') or data.get('message') or ''
+    chat_id = data.get('chat_id', 999) # Default test chat_id
     if not text:
         return jsonify({'error': 'no text provided'}), 400
 
     try:
-        # Run middleware pipeline but bypass sending to Telegram by
-        # calling the model directly via call_gemini.
-        # middleware.handle_request may perform extra actions; for a
-        # pure simulate we call the model adapter to get raw text.
-        reply = middleware.handle_request(call_gemini, text)
+        reply = middleware.handle_request(call_gemini, text, chat_id)
         return jsonify({'ok': True, 'reply': reply}), 200
     except Exception:
         logging.exception('Simulation failed')

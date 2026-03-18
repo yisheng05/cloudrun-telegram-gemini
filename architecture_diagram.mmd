@@ -27,7 +27,10 @@ graph TD
     
     subgraph "Triple-Threat Ingestion Pipeline (Tools)"
         OSM[OpenStreetMap: Physicality] -->|ingest_osm.py| RawData[Raw Nodes]
-        RawData -->|ingest_enrich.py| LLM_Enrich[LLM: Geo-Hierarchy & Cultural Insight]
+        RawData -->|ingest_enrich.py| Enforcer[Enrichment Layer]
+        Enforcer -->|Pillar 2: OneMap API| OneMap[onemap_client.py]
+        Enforcer -->|Pillar 3: LLM Fallback/Context| LLM_Enrich[LLM Reasoning]
+        OneMap -.->|Fallback if Token Fails| LLM_Enrich
         LLM_Enrich -->|merge_kg.py| KGData
     end
     

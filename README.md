@@ -13,9 +13,10 @@ The agent follows a multi-stage stateful pipeline:
 
 ## 🛠 Triple-Threat Ingestion Pipeline
 The Knowledge Graph is populated via a specialized pipeline:
-- **Physicality (OSM)**: Real-time node fetching from OpenStreetMap.
-- **Geo-Hierarchy (LLM/OneMap)**: Automated resolution of raw coordinates into official Planning Areas.
-- **Cultural Insight (LLM)**: Distillation of historical and cultural context for every establishment.
+- **Physicality (OSM)**: Real-time node fetching from OpenStreetMap (`ingest_osm.py`).
+- **Geo-Hierarchy (OneMap API)**: Official resolution of raw coordinates into Planning Areas via `onemap_client.py`.
+- **Enrichment & Fallback (LLM)**: Distillation of cultural context and fallback reasoning if API tokens expire.
+- **Merge Engine**: Safe integration of new nodes into the master graph (`merge_kg.py`).
 
 ## 🚀 Setup & Deployment
 Environment variables:

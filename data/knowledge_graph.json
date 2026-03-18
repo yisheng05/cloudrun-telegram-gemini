@@ -434,7 +434,7 @@
         "lat": 1.3893648,
         "lon": 103.8862866,
         "servesCuisine": "Coffee_Shop",
-        "description": "Historically a rural area with agriculture, Serangoon is now a vibrant residential area with connections to the Teochew community who were among the early settlers of the area."
+        "description": "The Serangoon area, once a swampy jungle, evolved into a thriving agricultural district and subsequently a residential hub, reflecting Singapore's rapid urban development from its rural past."
       }
     },
     {
@@ -451,7 +451,7 @@
         "lat": 1.3594895,
         "lon": 103.8854848,
         "servesCuisine": "Japanese",
-        "description": "Located in the heart of Orchard Road, Suki-ya benefits from the area's rich history as a former nutmeg orchard turned bustling retail hub and entertainment destination."
+        "description": "Located in Orchard, Suki-ya likely benefits from the area's long-standing reputation as a premier shopping and dining destination, evolving from plantation land in the 1800s to a bustling commercial hub."
       }
     },
     {
@@ -468,7 +468,7 @@
         "lat": 1.3314661,
         "lon": 103.9482377,
         "servesCuisine": "Coffee_Shop",
-        "description": "Pasir Ris, meaning 'narrow beach' in Malay, was once a popular weekend retreat with kampongs and beachside bungalows before evolving into a residential town."
+        "description": "The Pasir Ris area, once largely covered by mangrove swamps and kampongs, has transformed into a vibrant residential town known for its recreational facilities and proximity to nature, particularly along its scenic coastline."
       }
     },
     {
@@ -489,7 +489,7 @@
         "servesCuisine": "Seafood;Chinese",
         "openingHours": "Mo-Fr 17:00-23:45; Sa,Su,Ph 11:30-24:00",
         "wheelchairAccessible": true,
-        "description": "Jumbo Seafood's East Coast branch, located in Marine Parade, reflects the area's long-standing connection to the sea and its history as a popular recreational waterfront destination for Singaporeans."
+        "description": "Jumbo Seafood's East Coast Parkway outlet, situated near Bedok Jetty, allows diners to enjoy Singapore's iconic chilli crab with a scenic view of the Straits of Singapore, reminiscent of the area's history as a fishing village."
       }
     },
     {
@@ -503,14 +503,14 @@
         "TourismService"
       ],
       "properties": {
-        "locatedIn": "River Planning Area",
+        "locatedIn": "Singapore River",
         "osm_id": 462264013,
         "lat": 1.2892592,
         "lon": 103.8482726,
         "servesCuisine": "Seafood",
         "openingHours": "Mo-Su 11:30-23:00",
         "wheelchairAccessible": true,
-        "description": "Clarke Quay, within the River Planning Area, was once a bustling hub of trade and commerce along the Singapore River, vital for the island's development as a port city."
+        "description": "Located along the Singapore River, Jumbo Seafood at Riverside Point echoes the area's history as a bustling trading hub that has now transformed into a vibrant dining and entertainment district."
       }
     }
   ],

@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional, Tuple
 import knowledge
 import metrics
 import circuit_breaker
+import memory
 
 
 # ============================================================================
@@ -177,56 +178,11 @@ def perception_simulate(text: str) -> Dict[str, Any]:
         tmr["intent"] = "chat"
         return tmr
     
-    # Check for ontology class: Restaurant
-    if any(x in text_l for x in ["restaurant", "food", "eat", "dinner", "lunch", "breakfast", "cafe", "dining"]):
-        tmr["class"] = "Restaurant"
-        tmr["intent"] = "inform"
-
-    # Children's menu detection
-    if "children" in text_l or "kids" in text_l or "child" in text_l:
-        tmr["entities"]["childrensMenu"] = True
-    
-    # Check for general knowledge questions
-    if any(x in text_l for x in ["what", "when", "where", "why", "how", "who", "which", "tell me about", "explain", "won the", "is", "are"]) and \
-       not tmr.get("class") and not any(x in text_l for x in ["book", "reserve", "hotel"]):
-        # Looks like a general knowledge question
-        if not any(x in text_l for x in ["place", "event", "activity", "show", "concert", "shopping", "mall", "market", "shop", "park", "nature", "garden", "hike"]):
-            tmr["intent"] = "general_knowledge"
-            return tmr
-    
-    # Determine domain-specific intent
-    if "book" in text_l or "reserve" in text_l or "hotel" in text_l or "stay" in text_l or "flight" in text_l or "fly" in text_l or "ticket" in text_l:
-        tmr["intent"] = "booking"
-        if "hotel" in text_l or "room" in text_l or "stay" in text_l or "mbs" in text_l:
-            tmr["entities"]["booking_type"] = "Hotel"
-            tmr["class"] = "Hotel"
-        elif "hostel" in text_l:
-             tmr["entities"]["booking_type"] = "Hostel"
-        elif "flight" in text_l or "fly" in text_l or "ticket" in text_l:
-            tmr["entities"]["booking_type"] = "Flight"
-        elif "restaurant" in text_l or "table" in text_l or "dinner" in text_l:
-            tmr["entities"]["booking_type"] = "Restaurant"
-            tmr["class"] = "Restaurant"
-
-    elif "event" in text_l or "concert" in text_l or "show" in text_l or "exhibition" in text_l:
-        tmr["intent"] = "event"
-    elif "activity" in text_l or "tour" in text_l or "visit" in text_l or "see" in text_l:
-        tmr["intent"] = "activity"
-    
-    # Extract entities
-    if "italian" in text_l or "pasta" in text_l:
-        tmr["entities"]["servesCuisine"] = "Italian"
-        tmr["entities"]["servesCuisine_or_locatedIn"] = "Italian"
-    if "singaporean" in text_l or "local" in text_l or "asian" in text_l:
-        tmr["entities"]["servesCuisine"] = "Singaporean"
-        tmr["entities"]["servesCuisine_or_locatedIn"] = "Singaporean"
-    if "french" in text_l:
-        tmr["entities"]["servesCuisine"] = "French"
-        tmr["entities"]["servesCuisine_or_locatedIn"] = "French"
-    
     # Location detection
-    for location in ["marina bay", "marina", "chinatown", "clarke quay", "bras basah", "orchard", "sentosa", "harbourfront", "central", "kazakhstan", "mercury", "marine parade", "pasir ris"]:
+    found_location = False
+    for location in ["marina bay", "marina", "chinatown", "clarke quay", "bras basah", "orchard", "sentosa", "harbourfront", "central", "kazakhstan", "mercury", "marine parade", "pasir ris", "mandai"]:
         if location in text_l:
+            found_location = True
             if location in ["kazakhstan", "mercury"]:
                 tmr["entities"]["destination"] = location.title()
                 tmr["entities"]["locatedIn"] = location.title() 
@@ -234,6 +190,24 @@ def perception_simulate(text: str) -> Dict[str, Any]:
                 tmr["entities"]["locatedIn"] = location.title()
                 tmr["entities"]["servesCuisine_or_locatedIn"] = location.title()
             break
+
+    # Check for ontology classes
+    if any(x in text_l for x in ["restaurant", "food", "eat", "dinner", "lunch", "breakfast", "cafe", "dining"]):
+        tmr["class"] = "Restaurant"
+        tmr["intent"] = "inform"
+    elif any(x in text_l for x in ["attraction", "place", "see", "visit", "tourist"]):
+        tmr["class"] = "Attraction"
+        tmr["intent"] = "inform"
+
+    # Children's menu detection
+    if "children" in text_l or "kids" in text_l or "child" in text_l:
+        tmr["entities"]["childrensMenu"] = True
+    
+    # Check for general knowledge questions - ONLY if no domain keywords found
+    if not found_location and not tmr.get("class") and any(x in text_l for x in ["what", "when", "where", "why", "how", "who", "which", "tell me about", "explain", "won the", "is", "are"]):
+        if not any(x in text_l for x in ["book", "reserve", "hotel", "event", "activity", "show", "concert", "shopping", "mall", "market", "shop", "park", "nature", "garden", "hike"]):
+            tmr["intent"] = "general_knowledge"
+            return tmr
 
     # Establishment name detection (Specific for our new nodes)
     if "jumbo" in text_l:
@@ -283,6 +257,11 @@ def perception_simulate(text: str) -> Dict[str, Any]:
         tmr["entities"]["event_type"] = "light_show"
     if "exhibition" in text_l or "art" in text_l or "museum" in text_l:
         tmr["entities"]["event_type"] = "art_exhibition"
+
+    # Sightseeing detection
+    if "sightseeing" in text_l or "tour" in text_l:
+        tmr["intent"] = "activity"
+        tmr["entities"]["activity_type"] = "sightseeing"
 
     # Shopping detection
     if "shop" in text_l or "mall" in text_l or "buy" in text_l or "market" in text_l:
@@ -594,31 +573,43 @@ def produce_final_response(call_gemini_fn: Any, verified: Dict[str, Any], user_t
 
 
 
-def handle_request(call_gemini_fn: Optional[Any], text: str) -> str:
-    """Perception -> Deliberation -> Action pipeline.
-
-    If `call_gemini_fn` is provided and the env var `USE_TMR` is set,
-    this will attempt to request a structured TMR from the model. Otherwise
-    it uses a lightweight simulated perception step.
+def handle_request(call_gemini_fn: Optional[Any], text: str, chat_id: int) -> str:
+    """Perception -> Memory Update -> Deliberation -> Action pipeline.
     """
     use_tmr = os.getenv("USE_TMR", "false").lower() in ("1", "true", "yes")
 
+    # 1. Memory: Get session
+    session = memory.session_manager.get_session(chat_id)
+    
+    # Handle reset command
+    if text.lower() in ["/start", "reset", "clear"]:
+        session.clear()
+        return "I've reset our conversation. How can I help you today?"
+
+    # 2. Perception: Extract TMR from current text
     if use_tmr and call_gemini_fn:
         tmr = request_tmr_from_model(call_gemini_fn, text)
     else:
         tmr = perception_simulate(text)
 
-    deliberation = deliberation_query_kg(tmr)
+    # 3. Memory Update: Consolidate current TMR into Situation Model
+    session.update(tmr, text)
+    consolidated_tmr = session.to_dict()
 
-    # If we requested TMR and have a model function, ask the model to render
-    use_tmr = os.getenv("USE_TMR", "false").lower() in ("1", "true", "yes")
+    # 4. Deliberation: Query KG based on CONSOLIDATED state
+    deliberation = deliberation_query_kg(consolidated_tmr)
+
+    # 5. Action Rendering
     if use_tmr and call_gemini_fn:
-        return produce_final_response(call_gemini_fn, deliberation, text)
-
-    # Otherwise local rendering
-    reply = action_render_response(deliberation, text)
+        reply = produce_final_response(call_gemini_fn, deliberation, text)
+    else:
+        reply = action_render_response(deliberation, text)
+    
+    # Update history with bot response
+    session.history.append({"role": "assistant", "content": reply})
+    
     return reply
 
 
 if __name__ == "__main__":
-    print(handle_request(None, "Find Italian restaurants in Marina Bay"))
+    print(handle_request(None, "Find Italian restaurants in Marina Bay", 12345))
